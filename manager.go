@@ -51,17 +51,15 @@ func (manager *Manager) Start() {
 		request := <- manager.Requests
 
 		// Response object data
-		var err error
-		var response interface{}
+		response := Response{
+			Data: nil,
+			Error: nil,
+		}
 
 		// Internal kill command for the manager
 		if request.Route == "state|kill-manager" {
 			
-			request.Response <- Response{
-				Data:  response,
-				Error: err,
-			}
-
+			request.Response <- response
 			break
 		
 		// User defined commands
@@ -72,22 +70,19 @@ func (manager *Manager) Start() {
 			//	If it was, process the job .
 			function, ok := manager.getFunction(request.Route)
 			if !ok {
-				err = errors.New("No function named " + request.Route + " added to " + manager.Name + " manager.")
+				response.Error = errors.New("No function named " + request.Route + " added to " + manager.Name + " manager.")
 			} else {
-				response = function(request.Data)
+				response.Data = function(request.Data)
 			}
 
 			// If there is an error, just let the user know about it.
-			if err != nil {
+			if response.Error != nil {
 				fmt.Println("Error in manager, " + manager.Name + ":")
-				fmt.Println(err)
+				fmt.Println(response.Error)
 			}
 
 			// Add the response to the request
-			request.Response <- Response{
-				Data:  response,
-				Error: err,
-			}
+			request.Response <- response
 
 		}
 
