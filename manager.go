@@ -36,7 +36,7 @@ type Manager struct {
 	//	These functions will take in a request interface and respond with a response interface.
 	Functions 	map[string]func(request interface{}) interface{}
 
-	// StateLock
+	// StateLock determines whether or not "Functions" can be read or editted.
 	StateLock	sync.Mutex
 
 }
@@ -48,9 +48,9 @@ func (manager *Manager) Start() {
 	for {
 
 		// Extract the request and decide qhat to do based on what the route is
-		request := <- manager.Requests
+		request := <-manager.Requests
 
-		// Response object data
+		// Response object data. Initialize to nil values.
 		response := Response{
 			Data: nil,
 			Error: nil,
@@ -59,6 +59,7 @@ func (manager *Manager) Start() {
 		// Internal kill command for the manager
 		if request.Route == "state|kill-manager" {
 			
+			// Signify the request was processed and then break out of the processing loop.
 			request.Response <- response
 			break
 		
@@ -85,7 +86,6 @@ func (manager *Manager) Start() {
 			request.Response <- response
 
 		}
-
 
 	}
 

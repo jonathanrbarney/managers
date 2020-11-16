@@ -7,9 +7,12 @@ import (
 	"errors"
 )
 
-// NewManager will return a blank manager for use.
-// Buffer size is the number of requests for the manager to hold onto until it starts blocking
-//	requests.
+/*
+NewManager will return a blank manager for use.
+Buffer size is the number of requests for the manager to hold onto until it starts blocking
+requests. The appropriate number will depend on how many requests you expect the manager
+to recieve and how long each request takes to process.
+*/
 func NewManager(name string, bufferSize int) *Manager {
 
 	// Create a pointer to a new manager for clients to use.
