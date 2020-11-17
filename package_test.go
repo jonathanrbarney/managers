@@ -67,7 +67,7 @@ func Test(t *testing.T) {
 	manager.Send("get", nil)
 	Await("main", "update", "TEST")
 	Await("main", "get", nil)
-	
+
 	req := NewRequest("complete", nil)
 	req.Send("main")
 

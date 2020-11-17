@@ -3,8 +3,8 @@
 package manager
 
 import (
-	"sync"
 	"errors"
+	"sync"
 )
 
 /*
@@ -17,12 +17,10 @@ func NewManager(name string, bufferSize int) *Manager {
 
 	// Create a pointer to a new manager for clients to use.
 	newManager := &Manager{
-
-		Name: name,
-		Requests: make(chan *Request, bufferSize),
+		Name:      name,
+		Requests:  make(chan *Request, bufferSize),
 		Functions: make(map[string]func(request interface{}) interface{}),
 		StateLock: sync.Mutex{},
-
 	}
 
 	// Mutex management
@@ -40,11 +38,9 @@ func NewRequest(route string, data interface{}) *Request {
 
 	// Create a new request and return it with the give values
 	return &Request{
-
-		Route: route,
-		Data: data,
+		Route:    route,
+		Data:     data,
 		Response: make(chan Response, 1),
-
 	}
 
 }
