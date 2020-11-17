@@ -3,9 +3,9 @@
 package manager
 
 import (
+	"errors"
 	"fmt"
 	"sync"
-	"errors"
 )
 
 // Internal managers struct used for direct requests
@@ -26,19 +26,18 @@ func getManager(managerName string) (*Manager, bool) {
 type Manager struct {
 
 	// Name is just a user defined name for the manager
-	Name		string
+	Name string
 
 	// Requests is a channel used to keep track of everything the manager has
 	// 	been asked to do.
-	Requests	chan *Request
+	Requests chan *Request
 
 	// Functions is a map of request type to respective processing function.
 	//	These functions will take in a request interface and respond with a response interface.
-	Functions 	map[string]func(request interface{}) interface{}
+	Functions map[string]func(request interface{}) interface{}
 
 	// StateLock determines whether or not "Functions" can be read or editted.
-	StateLock	sync.Mutex
-
+	StateLock sync.Mutex
 }
 
 // Start will start the processing function for the manager
@@ -52,18 +51,18 @@ func (manager *Manager) Start() {
 
 		// Response object data. Initialize to nil values.
 		response := Response{
-			Data: nil,
+			Data:  nil,
 			Error: nil,
 		}
 
 		// Internal kill command for the manager
 		if request.Route == "state|kill-manager" {
-			
+
 			// Signify the request was processed and then break out of the processing loop.
 			request.Response <- response
 			break
-		
-		// User defined commands
+
+			// User defined commands
 		} else {
 
 			// Check to see if that route was added.
