@@ -83,9 +83,7 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 func Attach(managerName string, route string, f func(interface{}) interface{}) error {
 
 	// First grab the manager
-	managersLock.Lock()
-	defer managersLock.Unlock()
-	manager, exists := managersMap[managerName]
+	manager, exists := getManager(managerName)
 	if !exists {
 		return errors.New("Manager doesn't exist.")
 	}
@@ -94,6 +92,21 @@ func Attach(managerName string, route string, f func(interface{}) interface{}) e
 	manager.Attach(route, f)
 
 	// If here, nothing went wrong
+	return nil
+
+}
+
+// Start a manager
+func Start(managerName string) error {
+
+	// First grab the manager
+	manager, exists := getManager(managerName)
+	if !exists {
+		return errors.New("Manager doesn't exist.")
+	}
+
+	// The start the manager
+	manager.Start()
 	return nil
 
 }
