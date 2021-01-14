@@ -28,7 +28,7 @@ func NewManager(name string, bufferSize int) *Manager {
 	defer managersLock.Unlock()
 
 	// Add it to the managers map and return it
-	managers[name] = newManager
+	managersMap[name] = newManager
 	return newManager
 
 }
@@ -85,7 +85,7 @@ func Attach(managerName string, route string, f func(interface{}) interface{}) e
 	// First grab the manager
 	managersLock.Lock()
 	defer managersLock.Unlock()
-	manager, exists := managers[managerName]
+	manager, exists := managersMap[managerName]
 	if !exists {
 		return errors.New("Manager doesn't exist.")
 	}

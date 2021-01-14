@@ -9,7 +9,7 @@ import (
 )
 
 // Internal managers struct used for direct requests
-var managers = make(map[string]*Manager)
+var managersMap = make(map[string]*Manager)
 var managersLock = sync.Mutex{}
 
 // getManager is an internal function to grab a manager
@@ -17,7 +17,7 @@ func getManager(managerName string) (*Manager, bool) {
 
 	managersLock.Lock()
 	defer managersLock.Unlock()
-	manager, ok := managers[managerName]
+	manager, ok := managersMap[managerName]
 	return manager, ok
 
 }
