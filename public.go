@@ -78,3 +78,22 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 	return response, nil
 
 }
+
+// Attach a function to a manager
+func Attach(managerName string, route string, f func(interface{}) interface{}) error {
+
+	// First grab the manager
+	managersLock.Lock()
+	defer managersLock.Unlock()
+	manager, exists := managers[managerName]
+	if !exists {
+		return errors.New("Manager doesn't exist.")
+	}
+
+	// Then attach the function
+	manager.Attach(route, f)
+
+	// If here, nothing went wrong
+	return nil
+
+}
