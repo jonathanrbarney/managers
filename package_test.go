@@ -71,11 +71,11 @@ func Test(t *testing.T) {
 	// Send some jobs!
 	manager.Send("start", "1234")
 	manager.Send("get", nil)
-	Await("main", "update", "TEST")
-	Await("main", "get", nil)
+	// Await("main", "update", "TEST")
+	// Await("main", "get", nil)
 
-	req := NewRequest("complete", nil)
-	req.Send("main")
+	// req := NewRequest("complete", nil)
+	// req.Send("main")
 
 	manager.Await("get", nil)
 	err := manager.Await("fail", nil)
