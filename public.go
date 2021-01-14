@@ -105,8 +105,8 @@ func Start(managerName string) error {
 		return errors.New("Manager doesn't exist.")
 	}
 
-	// The start the manager
-	manager.Start()
+	// Then start the manager
+	go manager.Start()
 	return nil
 
 }
