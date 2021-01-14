@@ -3,6 +3,7 @@
 package manager
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -43,6 +44,10 @@ func Test(t *testing.T) {
 
 	}
 
+	fail := func(request interface{}) interface{} {
+		return errors.New("Test Error")
+	}
+
 	getResults := func(request interface{}) interface{} {
 
 		fmt.Println()
@@ -58,6 +63,7 @@ func Test(t *testing.T) {
 	manager.Attach("complete", completeJob)
 	manager.Attach("update", updateStatus)
 	manager.Attach("get", getResults)
+	manager.Attach("fail", fail)
 
 	// Start the manager
 	go manager.Start()
@@ -72,6 +78,10 @@ func Test(t *testing.T) {
 	req.Send("main")
 
 	manager.Await("get", nil)
+	err := manager.Await("fail", nil)
+	if err != nil {
+		t.Log("Successfully caught error.")
+	}
 
 	manager.Kill()
 

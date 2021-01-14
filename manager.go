@@ -73,6 +73,9 @@ func (manager *Manager) Start() {
 				response.Error = errors.New("No function named " + request.Route + " added to " + manager.Name + " manager.")
 			} else {
 				response.Data = function(request.Data)
+				if err, ok := response.Data.(error); ok {
+					response.Error = err
+				}
 			}
 
 			// If there is an error, just let the user know about it.
