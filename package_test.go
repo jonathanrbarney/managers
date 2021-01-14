@@ -83,6 +83,4 @@ func Test(t *testing.T) {
 		t.Log("Successfully caught error.")
 	}
 
-	KillAll()
-
 }

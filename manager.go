@@ -91,11 +91,6 @@ func (manager *Manager) Start() {
 
 	}
 
-	// Remove the manager from the array
-	managersLock.Lock()
-	defer managersLock.Unlock()
-	delete(managers, manager.Name)
-
 }
 
 // Send will send a job to the manager and not wait for completion

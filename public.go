@@ -78,17 +78,3 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 	return response, nil
 
 }
-
-// Kill all managers which are currently running
-func KillAll() {
-
-	// Handle the mutex
-	managersLock.Lock()
-	defer managersLock.Unlock()
-
-	// Loop through and kill each manager
-	for _, manager := range managers {
-		manager.Kill()
-	}
-
-}
