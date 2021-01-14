@@ -1,3 +1,3 @@
-module github.com/flywinged/go-manager
+module github.com/flywinged/managers
 
 go 1.15
