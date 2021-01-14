@@ -1,6 +1,6 @@
 // Created by Clayton Brown. See "LICENSE" file in root for more info.
 
-package manager
+package managers
 
 import (
 	"errors"
@@ -83,6 +83,6 @@ func Test(t *testing.T) {
 		t.Log("Successfully caught error.")
 	}
 
-	manager.Kill()
+	KillAll()
 
 }

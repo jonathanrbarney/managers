@@ -1,6 +1,6 @@
 // Created by Clayton Brown. See "LICENSE" file in root for more info.
 
-package manager
+package managers
 
 import (
 	"errors"

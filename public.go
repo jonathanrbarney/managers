@@ -1,6 +1,6 @@
 // Created by Clayton Brown. See "LICENSE" file in root for more info.
 
-package manager
+package managers
 
 import (
 	"errors"
@@ -76,5 +76,19 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 	// Send a job to the manager and return with no errors
 	response := manager.Await(route, data)
 	return response, nil
+
+}
+
+// Kill all managers which are currently running
+func KillAll() {
+
+	// Handle the mutex
+	managersLock.Lock()
+	defer managersLock.Unlock()
+
+	// Loop through and kill each manager
+	for _, manager := range managers {
+		manager.Kill()
+	}
 
 }
