@@ -34,14 +34,14 @@ type Manager struct {
 
 	// Functions is a map of request type to respective processing function.
 	//	These functions will take in a request interface and respond with a response interface.
-	Functions map[string]func(request interface{}) interface{}
+	Functions map[string]func(managerState interface{}, request interface{}) interface{}
 
 	// StateLock determines whether or not "Functions" can be read or editted.
 	StateLock sync.Mutex
 }
 
 // Start will start the processing function for the manager
-func (manager *Manager) Start() {
+func (manager *Manager) Start(managerState interface{}) {
 
 	// Big for loop for the manager to handle incomming requests
 	for {
@@ -72,7 +72,7 @@ func (manager *Manager) Start() {
 			if !ok {
 				response.Error = errors.New("No function named " + request.Route + " added to " + manager.Name + " manager.")
 			} else {
-				response.Data = function(request.Data)
+				response.Data = function(managerState, request.Data)
 				if err, ok := response.Data.(error); ok {
 					response.Error = err
 				}
@@ -130,7 +130,7 @@ func (manager *Manager) Kill() {
 }
 
 // Attach will attach a process to a manager
-func (manager *Manager) Attach(route string, function func(request interface{}) interface{}) {
+func (manager *Manager) Attach(route string, function func(managerState interface{}, request interface{}) interface{}) {
 
 	// This is simple as just attaching the function
 	manager.StateLock.Lock()
@@ -140,7 +140,7 @@ func (manager *Manager) Attach(route string, function func(request interface{}) 
 }
 
 // getFunction returns the function of a given name
-func (manager *Manager) getFunction(route string) (func(request interface{}) interface{}, bool) {
+func (manager *Manager) getFunction(route string) (func(managerState interface{}, request interface{}) interface{}, bool) {
 
 	// This is simple as just returning the function
 	manager.StateLock.Lock()

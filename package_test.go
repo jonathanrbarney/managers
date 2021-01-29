@@ -20,7 +20,7 @@ func Test(t *testing.T) {
 	jobResult := ""
 
 	// Greate a couple functions
-	startJob := func(request interface{}) interface{} {
+	startJob := func(managerState interface{}, request interface{}) interface{} {
 
 		jobID = request.(string)
 		jobStatus = "Processing"
@@ -28,7 +28,7 @@ func Test(t *testing.T) {
 		return nil
 	}
 
-	completeJob := func(request interface{}) interface{} {
+	completeJob := func(managerState interface{}, request interface{}) interface{} {
 
 		jobID = ""
 		jobStatus = "Complete"
@@ -37,23 +37,28 @@ func Test(t *testing.T) {
 
 	}
 
-	updateStatus := func(request interface{}) interface{} {
+	updateStatus := func(managerState interface{}, request interface{}) interface{} {
 
 		jobStatus = request.(string)
+		value := managerState.(*int)
+		*value = 9
 		return nil
 
 	}
 
-	fail := func(request interface{}) interface{} {
+	fail := func(managerState interface{}, request interface{}) interface{} {
 		return errors.New("Test Error")
 	}
 
-	getResults := func(request interface{}) interface{} {
+	getResults := func(managerState interface{}, request interface{}) interface{} {
 
 		fmt.Println()
 		fmt.Println("ID", jobID)
 		fmt.Println("Status:", jobStatus)
 		fmt.Println("Result:", jobResult)
+
+		v := managerState.(*int)
+		fmt.Println("Value:", *v)
 		return nil
 
 	}
@@ -66,13 +71,14 @@ func Test(t *testing.T) {
 	manager.Attach("fail", fail)
 
 	// Start the manager
-	go manager.Start()
+	data := 4
+	go manager.Start(&data)
 
 	// Send some jobs!
 	manager.Send("start", "1234")
 	manager.Send("get", nil)
-	// Await("main", "update", "TEST")
-	// Await("main", "get", nil)
+	Await("main", "update", "TEST")
+	Await("main", "get", nil)
 
 	// req := NewRequest("complete", nil)
 	// req.Send("main")

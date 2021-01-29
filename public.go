@@ -19,7 +19,7 @@ func NewManager(name string, bufferSize int) *Manager {
 	newManager := &Manager{
 		Name:      name,
 		Requests:  make(chan *Request, bufferSize),
-		Functions: make(map[string]func(request interface{}) interface{}),
+		Functions: make(map[string]func(managerState interface{}, request interface{}) interface{}),
 		StateLock: sync.Mutex{},
 	}
 
@@ -80,7 +80,7 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 }
 
 // Attach a function to a manager
-func Attach(managerName string, route string, f func(interface{}) interface{}) error {
+func Attach(managerName string, route string, f func(interface{}, interface{}) interface{}) error {
 
 	// First grab the manager
 	manager, exists := getManager(managerName)
@@ -97,7 +97,7 @@ func Attach(managerName string, route string, f func(interface{}) interface{}) e
 }
 
 // Start a manager
-func Start(managerName string) error {
+func Start(managerName string, managerState interface{}) error {
 
 	// First grab the manager
 	manager, exists := getManager(managerName)
@@ -106,7 +106,7 @@ func Start(managerName string) error {
 	}
 
 	// Then start the manager
-	go manager.Start()
+	go manager.Start(managerState)
 	return nil
 
 }
