@@ -58,6 +58,28 @@ func (request *Request) Await(managerName string) (*Response, error) {
 
 }
 
+/*
+	GetData will either return data or an error depending on whether or
+	not there is an error present in the data. Handy for use when you
+	have nested response objects.
+*/
+func (response *Response) GetData() interface{} {
+
+	if response.Error == nil {
+		data := response.Data
+
+		// Check that data is not a response struct. If it is, repeat the process.
+		responseData, ok := data.(Response)
+		if ok {
+			return responseData.GetData()
+		}
+
+		return response.Data
+	}
+	return response.Error
+
+}
+
 // wait is an internal command which will wait until a response is given.
 func (request *Request) wait() *Response {
 
