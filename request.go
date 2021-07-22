@@ -78,7 +78,7 @@ func (response *Response) GetData() interface{} {
 		}
 
 		// Check that data is not a response struct. If it is, repeat the process and return the smallest child.
-		responseData, ok := data.(Response)
+		responseData, ok := data.(*Response)
 		if ok {
 			return responseData.GetData()
 		}
