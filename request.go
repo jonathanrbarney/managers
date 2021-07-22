@@ -68,7 +68,16 @@ func (response *Response) GetData() interface{} {
 	if response.Error == nil {
 		data := response.Data
 
-		// Check that data is not a response struct. If it is, repeat the process.
+		/*
+			If the data is a channel, we want to wait until data is passed into that channel
+			and then use that data as the main data response.
+		*/
+		responseChannel, ok := data.(chan interface{})
+		if ok {
+			data = <-responseChannel
+		}
+
+		// Check that data is not a response struct. If it is, repeat the process and return the smallest child.
 		responseData, ok := data.(Response)
 		if ok {
 			return responseData.GetData()
