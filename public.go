@@ -19,6 +19,7 @@ func NewManager(name string, bufferSize int) *Manager {
 	newManager := &Manager{
 		Name:      name,
 		Requests:  make(chan *Request, bufferSize),
+		Running: false,
 		Functions: make(map[string]func(managerState interface{}, request interface{}) interface{}),
 		StateLock: sync.Mutex{},
 	}
@@ -63,7 +64,7 @@ func Send(managerName string, route string, data interface{}) error {
 }
 
 // Await will create and send a request to a defined manager and respond with the completed data
-func Await(managerName string, route string, data interface{}) (*Response, error) {
+func Await(managerName string, route string, data interface{}) (interface{}, error) {
 
 	// Get the manager
 	manager, ok := getManager(managerName)
@@ -74,8 +75,7 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 	}
 
 	// Send a job to the manager and return with no errors
-	response := manager.Await(route, data)
-	return response, nil
+	return manager.Await(route, data)
 
 }
 
@@ -108,5 +108,58 @@ func Start(managerName string, managerState interface{}) error {
 	// Then start the manager
 	go manager.Start(managerState)
 	return nil
+
+}
+
+// Simple function for fetching a manager by name
+func GetManager(managerName string) (*Manager, error) {
+	
+	// First grab the manager
+	manager, exists := getManager(managerName)
+	if !exists {
+		return nil, errors.New(managerName + " manager doesn't exist or has been deleted (occurred during getManager).")
+	}
+
+	return manager, nil
+
+}
+
+
+/////////////////////////////////////
+// PUBLIC MANAGER CONTROL BINDINGS //
+/////////////////////////////////////
+
+func Kill(managerName string) error {
+
+	manager, exists := getManager(managerName)
+	if !exists {
+		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during kil).")
+	}
+
+
+	// Just send a kill request and wait for completion
+	return manager.Kill()
+
+}
+
+func Remove(managerName string) error {
+
+	manager, exists := getManager(managerName)
+	if !exists {
+		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during remove).")
+	}
+
+	return manager.Remove()
+
+}
+
+func KillAndRemove(managerName string) error {
+
+	manager, exists := getManager(managerName)
+	if !exists {
+		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during killAndRemove).")
+	}
+
+	return manager.KillAndRemove()
 
 }

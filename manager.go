@@ -39,16 +39,24 @@ type Manager struct {
 	// 	been asked to do.
 	Requests chan *Request
 
+	// Whether or not the manager is currently processing
+	Running bool
+
 	// Functions is a map of request type to respective processing function.
 	//	These functions will take in a request interface and respond with a response interface.
 	Functions map[string]func(managerState interface{}, request interface{}) interface{}
 
-	// StateLock determines whether or not "Functions" can be read or editted.
+	// StateLock determines whether or not "Functions" and "Running" can be read or editted.
 	StateLock sync.Mutex
 }
 
 // Start will start the processing function for the manager
 func (manager *Manager) Start(managerState interface{}) {
+
+	// Freeze the state so that the manager can be set to running
+	manager.StateLock.Lock()
+	manager.Running = true
+	manager.StateLock.Unlock()
 
 	// Big for loop for the manager to handle incomming requests
 	for {
@@ -98,6 +106,18 @@ func (manager *Manager) Start(managerState interface{}) {
 
 	}
 
+	// Freeze the state so that the manager can be set to not running
+	manager.StateLock.Lock()
+	manager.Running = false
+	manager.StateLock.Unlock()
+
+}
+
+// Send will send a job to the manager and not wait for completion
+func (manager *Manager) IsRunning() bool {
+	manager.StateLock.Lock()
+	defer manager.StateLock.Unlock()
+	return manager.Running
 }
 
 // Send will send a job to the manager and not wait for completion
@@ -115,41 +135,49 @@ func (manager *Manager) Send(route string, data interface{}) *Request {
 }
 
 // Await will send a job to the manager and await completion
-func (manager *Manager) Await(route string, data interface{}) *Response {
+func (manager *Manager) Await(route string, data interface{}) (interface{}, error) {
 
 	// Create and send the request to the manager
 	request := manager.Send(route, data)
 
 	// Wait for the request to complete
-	response := request.wait()
-
-	// Return the respons to the user
-	return response
+	return request.Wait()
 
 }
 
 // Kill is a default request which will halt the manager
-func (manager *Manager) Kill() {
+func (manager *Manager) Kill() error {
 
 	// Just send a kill request and wait for completion
-	manager.Await("state|kill-manager", nil)
+	_, err := manager.Await("state|kill-manager", nil)
+	return err
 
 }
 
 // Remove is the function which will remove the manager from the public map.
 // 	Once this is done, the manager should be deleted/removed from memory.
-func (manager *Manager) Remove() {
+func (manager *Manager) Remove() error {
+
+	// Can only remove if the manager is not running
+	if manager.IsRunning() {
+		return errors.New("Unable to remove manager " + manager.Name + " because it is currently running.")
+	}
+	
 	deleteManager(manager.Name)
+	return nil
 }
 
 // Kill is a default request which will halt the manager AND remove it from the map
-func (manager *Manager) KillAndRemove() {
+func (manager *Manager) KillAndRemove() error {
 
 	// Just send a kill request and wait for completion
-	manager.Await("state|kill-manager", nil)
+	_, err := manager.Await("state|kill-manager", nil)
+	if err != nil {
+		return err
+	}
 
 	// Afterwards, remove the manager from the manager map
-	deleteManager(manager.Name)
+	return manager.Remove()
 
 }
 

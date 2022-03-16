@@ -45,7 +45,7 @@ func (request *Request) Send(managerName string) error {
 }
 
 // Await will wait until a request is completed and respond with the result
-func (request *Request) Await(managerName string) (*Response, error) {
+func (request *Request) Await(managerName string) (interface{}, error) {
 
 	// First send the request
 	err := request.Send(managerName)
@@ -56,7 +56,26 @@ func (request *Request) Await(managerName string) (*Response, error) {
 	}
 
 	// Otherwise wait for completion and return the result
-	return request.wait(), nil
+	return request.Wait()
+
+}
+
+// Send will send a request to a specified manager
+func (request *Request) SendManager(manager *Manager) {
+
+	// Otherwise, send the request to the manager and return with no errors
+	manager.Requests <- request
+
+}
+
+// Await will wait until a request is completed and respond with the result
+func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
+
+	// First send the request
+	request.SendManager(manager)
+
+	// Otherwise wait for completion and return the result
+	return request.Wait()
 
 }
 
@@ -65,7 +84,7 @@ func (request *Request) Await(managerName string) (*Response, error) {
 	not there is an error present in the data. Handy for use when you
 	have nested response objects.
 */
-func (response *Response) GetData() interface{} {
+func (response *Response) GetData() (interface{}, error) {
 
 	if response.Error == nil {
 		data := response.Data
@@ -85,17 +104,19 @@ func (response *Response) GetData() interface{} {
 			return responseData.GetData()
 		}
 
-		return response.Data
+		return response.Data, nil
 	}
-	return response.Error
+
+	return nil, response.Error
 
 }
 
-// wait is an internal command which will wait until a response is given.
-func (request *Request) wait() *Response {
+// Wait is used for a job which has already been sent and the response wants to be waited on.
+// 	Once the response is given, the data will be parsed and returned.
+func (request *Request) Wait() (interface{}, error) {
 
 	// Just wait for data to be put in the response
 	response := <-request.Response
-	return &response
+	return response.GetData()
 
 }
