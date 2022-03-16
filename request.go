@@ -84,7 +84,7 @@ func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
 	not there is an error present in the data. Handy for use when you
 	have nested response objects.
 */
-func (response *Response) GetData() (interface{}, error) {
+func (response *Response) getData() (interface{}, error) {
 
 	if response.Error == nil {
 		data := response.Data
@@ -101,7 +101,7 @@ func (response *Response) GetData() (interface{}, error) {
 		// Check that data is not a response struct. If it is, repeat the process and return the smallest child.
 		responseData, ok := data.(*Response)
 		if ok {
-			return responseData.GetData()
+			return responseData.getData()
 		}
 
 		return response.Data, nil
@@ -117,6 +117,6 @@ func (request *Request) Wait() (interface{}, error) {
 
 	// Just wait for data to be put in the response
 	response := <-request.Response
-	return response.GetData()
+	return response.getData()
 
 }

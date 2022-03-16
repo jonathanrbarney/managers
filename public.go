@@ -13,7 +13,7 @@ Buffer size is the number of requests for the manager to hold onto until it star
 requests. The appropriate number will depend on how many requests you expect the manager
 to recieve and how long each request takes to process.
 */
-func NewManager(name string, bufferSize int) *Manager {
+func NewManager(name string, bufferSize int) (*Manager, error) {
 
 	// Create a pointer to a new manager for clients to use.
 	newManager := &Manager{
@@ -28,9 +28,14 @@ func NewManager(name string, bufferSize int) *Manager {
 	managersLock.Lock()
 	defer managersLock.Unlock()
 
+	// Check that the manager name doesn't already exist
+	if _, exists := managersMap[name]; exists {
+		return nil, errors.New("Manager with name " + name + " already exists!")
+	}
+
 	// Add it to the managers map and return it
 	managersMap[name] = newManager
-	return newManager
+	return newManager, nil
 
 }
 
@@ -47,19 +52,18 @@ func NewRequest(route string, data interface{}) *Request {
 }
 
 // Send will create and send a request to a defined manager
-func Send(managerName string, route string, data interface{}) error {
+func Send(managerName string, route string, data interface{}) (*Request, error) {
 
 	// Get the manager
 	manager, ok := getManager(managerName)
 
 	// If the manager doesn't exist, respond with an error
 	if !ok {
-		return errors.New(managerName + " manager is not created or has been deleted (occurred during public send).")
+		return nil, errors.New(managerName + " manager is not created or has been deleted (occurred during public send).")
 	}
 
 	// Send a job to the manager and return with no errors
-	manager.Send(route, data)
-	return nil
+	return manager.Send(route, data), nil
 
 }
 
@@ -111,6 +115,11 @@ func Start(managerName string, managerState interface{}) error {
 
 }
 
+
+/////////////////////////////////////
+// PUBLIC MANAGER CONTROL BINDINGS //
+/////////////////////////////////////
+
 // Simple function for fetching a manager by name
 func GetManager(managerName string) (*Manager, error) {
 	
@@ -123,11 +132,6 @@ func GetManager(managerName string) (*Manager, error) {
 	return manager, nil
 
 }
-
-
-/////////////////////////////////////
-// PUBLIC MANAGER CONTROL BINDINGS //
-/////////////////////////////////////
 
 func Kill(managerName string) error {
 

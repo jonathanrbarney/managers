@@ -74,7 +74,8 @@ func Test_Manager(t *testing.T) {
 func createPublicManager(t *testing.T, managerName string, bufferSize int) {
 
 	// First, create a manager with the specified name
-	NewManager(managerName, bufferSize)
+	_, err := NewManager(managerName, bufferSize)
+	if err != nil { t.Fail() }
 
 	// Then we want to attach all the routes
 	if err := Attach(managerName, "get", getTestState); err != nil { t.Fail() }
@@ -91,7 +92,8 @@ func createPublicManager(t *testing.T, managerName string, bufferSize int) {
 func createHandledManager(t *testing.T, managerName string, bufferSize int) *Manager {
 
 	// First, create a manager with the specified name
-	manager := NewManager(managerName, bufferSize)
+	manager, err := NewManager(managerName, bufferSize)
+	if err != nil { t.Fail() }
 
 	// Then we want to attach all the routes
 	manager.Attach("get", getTestState)
@@ -122,7 +124,7 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 				if err != nil { t.Fail() }
 				return response
 			} else {
-				err := Send(managerName, route, request)
+				_, err := Send(managerName, route, request)
 				if err != nil { t.Fail() }
 				return nil
 			}
