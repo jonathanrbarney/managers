@@ -1,4 +1,7 @@
 # managers
+
+`import "github.com/flywinged/managers"`
+
 Server-Like Local State Management System for Golang. Managers is intended to be used in instances where many goroutines all need to coordinated access to some shared state. The intent is to make it easier to write these applications by allowing the developer to not need to worry about memory read/write race conditions.
 
 Below are a couple standard usages for the package and how you would implement them. It is comprehensive and includes every binding you should be using while using `managers`.
