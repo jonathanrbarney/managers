@@ -16,6 +16,8 @@ type Request struct {
 	Data interface{}
 
 	// Result is what is sent back when the process is finished
+	// Result is a channel so that await commands can wait for the process
+	// 	thread to finish it's computations.
 	Response chan Response
 }
 
@@ -33,7 +35,7 @@ func (request *Request) Send(managerName string) error {
 
 	// If the manager doesn't exist, respond with an error
 	if !ok {
-		return errors.New(managerName + " manager is not created.")
+		return errors.New(managerName + " manager is not created or has been deleted (occurred during request send).")
 	}
 
 	// Otherwise, send the request to the manager and return with no errors

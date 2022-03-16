@@ -53,7 +53,7 @@ func Send(managerName string, route string, data interface{}) error {
 
 	// If the manager doesn't exist, respond with an error
 	if !ok {
-		return errors.New(managerName + " manager is not created.")
+		return errors.New(managerName + " manager is not created or has been deleted (occurred during public send).")
 	}
 
 	// Send a job to the manager and return with no errors
@@ -70,7 +70,7 @@ func Await(managerName string, route string, data interface{}) (*Response, error
 
 	// If the manager doesn't exist, respond with an error
 	if !ok {
-		return nil, errors.New(managerName + " manager is not created.")
+		return nil, errors.New(managerName + " manager is not created or has been deleted (occurred during public await).")
 	}
 
 	// Send a job to the manager and return with no errors
@@ -85,7 +85,7 @@ func Attach(managerName string, route string, f func(interface{}, interface{}) i
 	// First grab the manager
 	manager, exists := getManager(managerName)
 	if !exists {
-		return errors.New("Manager doesn't exist.")
+		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during public attach).")
 	}
 
 	// Then attach the function
@@ -102,7 +102,7 @@ func Start(managerName string, managerState interface{}) error {
 	// First grab the manager
 	manager, exists := getManager(managerName)
 	if !exists {
-		return errors.New("Manager doesn't exist.")
+		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during start).")
 	}
 
 	// Then start the manager

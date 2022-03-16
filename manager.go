@@ -22,6 +22,13 @@ func getManager(managerName string) (*Manager, bool) {
 
 }
 
+// deleteManager is an internal function for deleting a manager from the managers map
+func deleteManager(managerName string) {
+	managersLock.Lock()
+	defer managersLock.Unlock()
+	delete(managersMap, managerName)
+}
+
 // Manager is the type used to process and respond to requests.
 type Manager struct {
 
@@ -126,6 +133,23 @@ func (manager *Manager) Kill() {
 
 	// Just send a kill request and wait for completion
 	manager.Await("state|kill-manager", nil)
+
+}
+
+// Remove is the function which will remove the manager from the public map.
+// 	Once this is done, the manager should be deleted/removed from memory.
+func (manager *Manager) Remove() {
+	deleteManager(manager.Name)
+}
+
+// Kill is a default request which will halt the manager AND remove it from the map
+func (manager *Manager) KillAndRemove() {
+
+	// Just send a kill request and wait for completion
+	manager.Await("state|kill-manager", nil)
+
+	// Afterwards, remove the manager from the manager map
+	deleteManager(manager.Name)
 
 }
 
