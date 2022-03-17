@@ -63,7 +63,7 @@ func (manager *Manager) Start(managerState interface{}) {
 	// Big for loop for the manager to handle incomming requests
 	for {
 
-		// Extract the request and decide qhat to do based on what the route is
+		// Extract the request and decide what to do based on what the route is
 		request := <-manager.requests
 
 		// Response object data. Initialize to nil values.
