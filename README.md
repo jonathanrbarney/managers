@@ -31,7 +31,7 @@ request := managers.NewRequest("multiply", 42)
 
 This will create a new request object which is assigned to the route `"multiply"` and will send to the processing function the data `42`.
 
-### Send and Await
+### Requests
 
 ```go
 // func Send(
@@ -45,10 +45,17 @@ request, err := managers.Send("Example Manager", "multiply", 42)
 // ) (interface{}, error) { ... }
 
 response, err := managers.Await("Example Manager", "multiply", 42)
-```
-The above will create a request with the data `42` and send it to the manager named `"Example Manager"` if it exists at the route `"multiply"`. `Send()` **IS NOT** blocking and will immediately return with the generated request object when the job has been successfully sent to the manager. `Await()` **IS** blocking and will wait until the manager process the request or there is an error before returning with the relevant response.
 
-### Attach
+// func SendRequest(managerName string, request *Request) error { ... }
+request := managers.NewRequest("multiply", 42)
+err := managers.SendRequest("Example Manager", request)
+response, err := managers.AwaitRequest("Example Manager", request)
+```
+`Send()` and `Await()` will create a request with the data `42` and send it to the manager named `"Example Manager"` if it exists at the route `"multiply"`. `Send()` **IS NOT** blocking and will immediately return with the generated request object when the job has been successfully sent to the manager. `Await()` **IS** blocking and will wait until the manager process the request or there is an error before returning with the relevant response.
+
+`SendRequest()` and `AwaitRequest()` will send a premade request and will emulate the same functions as above.
+
+### Attach/Detach
 
 ```go
 // func Attach(
@@ -80,9 +87,14 @@ func exampleMultiplication(
 }
 
 err := managers.Attach("Example Manager", "multiply", exampleMultiplication)
+
+// func Detach(managerName string, route string) error { ... }
+managers.Detach("Ecample Manager", "multiply")
 ```
 
 The above will attach the `exampleMultiplication` function to an existing manager `"Example Manager"` at the route `"multiply"`. Whenever a request is sent to this manager with that route, it will be handled by this funtion. Errors are automatically handled and will be returned accordingly.
+
+The detach function will simply remove the handler from the manager.
 
 ### Basic Manager Functions
 
@@ -121,7 +133,7 @@ go manager.Start( &state )
 
 The above will start a manager with the state `42`. In general, the state passed in should be of the pointer type so that data can be updated by the internal routes. You can leave this nil if the manager state is always accessible by the bound functions. See example above for some different use cases. This function is **BLOCKING**. If you want it to run in the background, detach it.
 
-### Attach
+### Attach and Detach
 ```go
 // func (manager *Manager) Attach(
 //     route string,
@@ -154,9 +166,14 @@ manager, err := managers.NewManager("Example Manager", 128)
 go manager.Start(42)
 
 manager.Attach("multiply", exampleMultiplication)
+
+// func (manager *Manager) Detach(route string) { ... }
+manager.Detach("multiply")
 ```
 
 The above will attach the `exampleMultiplication` function to an existing manager at the route `"multiply"`. Whenever a request is sent to this manager with that route, it will be handled by this funtion. Errors are automatically handled and will be returned accordingly.
+
+Detach will simply remove the attached handler.
 
 ### Request Methods
 ```go
@@ -165,13 +182,20 @@ manager, err := managers.NewManager("Example Manager", 128)
 go manager.Start(42)
 
 // func (manager *Manager) Send(route string, data interface{}) *Request { ... }
-request := manager.Send("multiplication", 3)
+request := manager.Send("multiply", 3)
 
 // func (manager *Manager) Await(route string, data interface{}) (interface{}, error) { ... }
-response, err := manager.Await("multiplication", 3)
+response, err := manager.Await("multiply", 3)
+
+// func (manager *Manager) SendRequest(request *Request) { ... }
+request := managers.NewRequest("multiply", 42)
+manager.SendRequest(request)
+response := manager.AwaitRequest(request)
 ```
 
-Both above routes will send a job to the `"multiplication"` route with a value of `42`. The `Send()` route is not blocking and will not recieve a response, the `Await()` function is blocking and will recieve a response.
+`Send()` and `Await()` will send a job to the `"multiply"` route with a value of `42`. The `Send()` route is not blocking and will not recieve a response, the `Await()` function is blocking and will recieve a response.
+
+`SendRequest()` and `AwaitRequest()` will send a premade request to the manager and then process in the expected way.
 
 ### Control Methods
 ```go
@@ -256,6 +280,18 @@ response, err := request.Wait()
 
 The above will wait for a job that has been sent to finally be processed. You can use this to do parallel processing while awaiting a return.
 Wait is called by `Await()` as well. The important thing to note, is `Wait()` is what every function uses to fetch responses. If you have nested request objects for whatever reason, this will automatically follow the nested pattern and return the final result.
+
+### Has Data
+```go
+// func (request *Request) HasData() bool { ... }
+request := managers.NewRequest("multiply", 42)
+err := request.Send("Example Manager")
+
+hasDatad := request.HasData()
+```
+
+The above will check to see if a request has data yet or not.
+
 ## Structs
 
 There are two main structs provided in this package, `Request` and `Manager`. The `ManagerFunction` is just a specified function type which is handled by the managers.
@@ -268,10 +304,10 @@ The manager handles basically everything. A manager is responsible for processin
 ```go
 type Manager struct {
 	Name string
-	Requests chan *Request
-	Running bool
-	Functions map[string]func(managerState interface{}, request interface{}) interface{}
-	StateLock sync.Mutex
+	requests chan *Request
+	running bool
+	functions map[string]func(managerState interface{}, request interface{}) interface{}
+	stateLock sync.Mutex
 }
 ```
 

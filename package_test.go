@@ -33,6 +33,11 @@ func Test_Public_Bindings(t *testing.T) {
 	// Ensure all managers have finished processing before shutting down
 	<-time.Tick(3 * time.Second)
 
+	if err := Detach("Manager 1", "get"); err != nil { t.Fail() }
+	if err := Detach("Manager 1", "setStatus"); err != nil { t.Fail() }
+	if err := Detach("Manager 1", "setValue"); err != nil { t.Fail() }
+	if err := Detach("Manager 1", "square"); err != nil { t.Fail() }
+
 	if err := KillAndRemove("Manager 1"); err != nil { t.Fail() }
 	if err := KillAndRemove("Manager 2"); err != nil { t.Fail() }
 	if err := KillAndRemove("Manager 3"); err != nil { t.Fail() }
@@ -59,6 +64,11 @@ func Test_Manager(t *testing.T) {
 	// Ensure all managers have finished processing before shutting down
 	<-time.Tick(3 * time.Second)
 
+	m1.Detach("get")
+	m1.Detach("setStatus")
+	m1.Detach("setValue")
+	m1.Detach("square")
+
 	if err := m1.KillAndRemove(); err != nil { t.Fail() }
 	if err := m2.KillAndRemove(); err != nil { t.Fail() }
 	if err := m3.KillAndRemove(); err != nil { t.Fail() }
@@ -66,6 +76,18 @@ func Test_Manager(t *testing.T) {
 
 	if len(managersMap) != 0 { t.Fail() }
 
+}
+
+// Test that is complete is working
+func Test_hasData(t *testing.T) {
+	m := createHandledManager(t, "Manager", 256)
+	go m.Start(&State{Status: "Starting Up", Value: 0})
+	<-time.Tick(5 * time.Millisecond)
+	r := m.Send("setStatus", "Status 1")
+	if (m.IsRunning() != true) { t.Error("Didn't show manager as running") }
+	if (r.HasData() == true) { t.Error("Didn't show request as incomplete") }
+	<-time.Tick(5 * PROCESS_DELAY * time.Millisecond)
+	if (r.HasData() == false) { t.Error("Didn't show request as complete") }
 }
 
 /////////////////////////

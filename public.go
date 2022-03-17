@@ -18,10 +18,10 @@ func NewManager(name string, bufferSize int) (*Manager, error) {
 	// Create a pointer to a new manager for clients to use.
 	newManager := &Manager{
 		Name:      name,
-		Requests:  make(chan *Request, bufferSize),
-		Running: false,
-		Functions: make(map[string]func(managerState interface{}, request interface{}) interface{}),
-		StateLock: sync.Mutex{},
+		requests:  make(chan *Request, bufferSize),
+		running: false,
+		functions: make(map[string]func(managerState interface{}, request interface{}) interface{}),
+		stateLock: sync.Mutex{},
 	}
 
 	// Mutex management
@@ -46,7 +46,7 @@ func NewRequest(route string, data interface{}) *Request {
 	return &Request{
 		Route:    route,
 		Data:     data,
-		Response: make(chan Response, 1),
+		response: make(chan responseStruct, 1),
 	}
 
 }
@@ -65,6 +65,36 @@ func Send(managerName string, route string, data interface{}) (*Request, error) 
 	// Send a job to the manager and return with no errors
 	return manager.Send(route, data), nil
 
+}
+
+func SendRequest(managerName string, request *Request) error {
+
+	// Get the manager
+	manager, ok := getManager(managerName)
+
+	// If the manager doesn't exist, respond with an error
+	if !ok {
+		return errors.New(managerName + " manager is not created or has been deleted (occurred during public sendRequest).")
+	}
+
+	// Send a job to the manager and return with no errors
+	manager.SendRequest(request)
+
+	return nil
+
+}
+
+func AwaitRequest(managerName string, request *Request) (interface{}, error) {
+	// Get the manager
+	manager, ok := getManager(managerName)
+
+	// If the manager doesn't exist, respond with an error
+	if !ok {
+		return nil, errors.New(managerName + " manager is not created or has been deleted (occurred during public sendRequest).")
+	}
+
+	// Send a job to the manager and return with no errors
+	return manager.AwaitRequest(request)
 }
 
 // Await will create and send a request to a defined manager and respond with the completed data
@@ -96,6 +126,23 @@ func Attach(managerName string, route string, f func(interface{}, interface{}) i
 	manager.Attach(route, f)
 
 	// If here, nothing went wrong
+	return nil
+
+}
+
+// Detach a function from a manager
+func Detach(managerName string, route string) error {
+
+	// First grab the manager
+	manager, exists := getManager(managerName)
+	if !exists {
+		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during public attach).")
+	}
+
+	// Then detach the route
+	manager.Detach(route)
+
+	// If here, everything went well
 	return nil
 
 }

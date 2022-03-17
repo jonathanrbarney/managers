@@ -7,6 +7,8 @@ import (
 )
 
 // Request is the generic type used to communicate information to and from managers.
+// 	None of the data in request needs to be private as none of them have race conditions.
+// 	unless maliciously used by others.
 type Request struct {
 
 	// Route is used to determine what this request is asking for.
@@ -15,14 +17,14 @@ type Request struct {
 	// Data is the information being transfered during the request.
 	Data interface{}
 
-	// Result is what is sent back when the process is finished
-	// Result is a channel so that await commands can wait for the process
-	// 	thread to finish it's computations.
-	Response chan Response
+	// Response is what is sent back when the process is finished
+	// Response is a channel so that await commands can wait for the process
+	// 	thread to finish it's computations. This is not necessary for a user to see.
+	response chan responseStruct
 }
 
-// Response is the default type returned by objects
-type Response struct {
+// responseStruct is the default type returned by objects
+type responseStruct struct {
 	Data  interface{}
 	Error error
 }
@@ -39,7 +41,7 @@ func (request *Request) Send(managerName string) error {
 	}
 
 	// Otherwise, send the request to the manager and return with no errors
-	manager.Requests <- request
+	manager.SendRequest(request)
 	return nil
 
 }
@@ -64,7 +66,7 @@ func (request *Request) Await(managerName string) (interface{}, error) {
 func (request *Request) SendManager(manager *Manager) {
 
 	// Otherwise, send the request to the manager and return with no errors
-	manager.Requests <- request
+	manager.SendRequest(request)
 
 }
 
@@ -84,7 +86,7 @@ func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
 	not there is an error present in the data. Handy for use when you
 	have nested response objects.
 */
-func (response *Response) getData() (interface{}, error) {
+func (response *responseStruct) getData() (interface{}, error) {
 
 	if response.Error == nil {
 		data := response.Data
@@ -99,7 +101,7 @@ func (response *Response) getData() (interface{}, error) {
 		}
 
 		// Check that data is not a response struct. If it is, repeat the process and return the smallest child.
-		responseData, ok := data.(*Response)
+		responseData, ok := data.(*responseStruct)
 		if ok {
 			return responseData.getData()
 		}
@@ -116,7 +118,17 @@ func (response *Response) getData() (interface{}, error) {
 func (request *Request) Wait() (interface{}, error) {
 
 	// Just wait for data to be put in the response
-	response := <-request.Response
+	response := <-request.response
 	return response.getData()
 
+}
+
+// Check to see if the request has been carried out yet
+func (request *Request) HasData() bool {
+	return len(request.response) > 0
+}
+
+// Internal function for storing a response
+func (request *Request) storeResponse(response responseStruct) {
+	request.response <- response
 }

@@ -32,40 +32,42 @@ func deleteManager(managerName string) {
 // Manager is the type used to process and respond to requests.
 type Manager struct {
 
-	// Name is just a user defined name for the manager
+	// Name is just a user defined name for the manager. This is the only public
+	// 	value because it is not read anywhere internally, so we can pass it on to the users
+	// 	to handle.
 	Name string
 
 	// Requests is a channel used to keep track of everything the manager has
 	// 	been asked to do.
-	Requests chan *Request
+	requests chan *Request
 
 	// Whether or not the manager is currently processing
-	Running bool
+	running bool
 
 	// Functions is a map of request type to respective processing function.
 	//	These functions will take in a request interface and respond with a response interface.
-	Functions map[string]func(managerState interface{}, request interface{}) interface{}
+	functions map[string]func(managerState interface{}, request interface{}) interface{}
 
-	// StateLock determines whether or not "Functions" and "Running" can be read or editted.
-	StateLock sync.Mutex
+	// stateLock determines whether or not "Functions" and "Running" can be read or editted.
+	stateLock sync.Mutex
 }
 
 // Start will start the processing function for the manager
 func (manager *Manager) Start(managerState interface{}) {
 
 	// Freeze the state so that the manager can be set to running
-	manager.StateLock.Lock()
-	manager.Running = true
-	manager.StateLock.Unlock()
+	manager.stateLock.Lock()
+	manager.running = true
+	manager.stateLock.Unlock()
 
 	// Big for loop for the manager to handle incomming requests
 	for {
 
 		// Extract the request and decide qhat to do based on what the route is
-		request := <-manager.Requests
+		request := <-manager.requests
 
 		// Response object data. Initialize to nil values.
-		response := Response{
+		response := responseStruct{
 			Data:  nil,
 			Error: nil,
 		}
@@ -74,7 +76,7 @@ func (manager *Manager) Start(managerState interface{}) {
 		if request.Route == "state|kill-manager" {
 
 			// Signify the request was processed and then break out of the processing loop.
-			request.Response <- response
+			request.storeResponse(response)
 			break
 
 			// User defined commands
@@ -100,24 +102,24 @@ func (manager *Manager) Start(managerState interface{}) {
 			}
 
 			// Add the response to the request
-			request.Response <- response
+			request.storeResponse(response)
 
 		}
 
 	}
 
 	// Freeze the state so that the manager can be set to not running
-	manager.StateLock.Lock()
-	manager.Running = false
-	manager.StateLock.Unlock()
+	manager.stateLock.Lock()
+	manager.running = false
+	manager.stateLock.Unlock()
 
 }
 
 // Send will send a job to the manager and not wait for completion
 func (manager *Manager) IsRunning() bool {
-	manager.StateLock.Lock()
-	defer manager.StateLock.Unlock()
-	return manager.Running
+	manager.stateLock.Lock()
+	defer manager.stateLock.Unlock()
+	return manager.running
 }
 
 // Send will send a job to the manager and not wait for completion
@@ -127,11 +129,25 @@ func (manager *Manager) Send(route string, data interface{}) *Request {
 	request := NewRequest(route, data)
 
 	// Send the job to the manager
-	manager.Requests <- request
+	manager.requests <- request
 
 	// Respond with the request
 	return request
 
+}
+
+// SendRequest will queue a premade request to the manager. This is mainly just to ensure
+// 	that the .requests field can stay hidden and unaccessible to users. However, it can also
+//  be utilized if a user wishes to interact with it in a different way.
+func (manager *Manager) SendRequest(request *Request) {
+	manager.requests <- request
+}
+
+// AwaitRequest will queue a premade request to the manager. This is mainly just to ensure
+// 	that the .requests field can stay hidden.
+func (manager *Manager) AwaitRequest(request *Request) (interface{}, error) {
+	manager.SendRequest(request)
+	return request.Wait()
 }
 
 // Await will send a job to the manager and await completion
@@ -185,19 +201,26 @@ func (manager *Manager) KillAndRemove() error {
 func (manager *Manager) Attach(route string, function func(managerState interface{}, request interface{}) interface{}) {
 
 	// This is simple as just attaching the function
-	manager.StateLock.Lock()
-	defer manager.StateLock.Unlock()
-	manager.Functions[route] = function
+	manager.stateLock.Lock()
+	defer manager.stateLock.Unlock()
+	manager.functions[route] = function
 
+}
+
+// Detach will remove a specified route from a manager
+func (manager *Manager) Detach(route string) {
+	manager.stateLock.Lock()
+	defer manager.stateLock.Unlock()
+	delete(manager.functions, route)
 }
 
 // getFunction returns the function of a given name
 func (manager *Manager) getFunction(route string) (func(managerState interface{}, request interface{}) interface{}, bool) {
 
 	// This is simple as just returning the function
-	manager.StateLock.Lock()
-	defer manager.StateLock.Unlock()
-	function, ok := manager.Functions[route]
+	manager.stateLock.Lock()
+	defer manager.stateLock.Unlock()
+	function, ok := manager.functions[route]
 	return function, ok
 
 }
