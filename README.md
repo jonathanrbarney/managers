@@ -105,8 +105,8 @@ See Manager Methods heading below for more in depth detail of each.
 // func Start(managerName string, managerState interface{}) error { ... }
 err := managers.Start("Example Manager", nil) // Start the "Example Manager" with a nil state
 
-// func GetManager(managerName string) (*Manager, error) { ... }
-manager, err := managers.GetManager("Example Manager") // Get a reference to the "Example Manager"
+// func getManager(managerName string) (*Manager, error) { ... }
+manager, err := managers.getManager("Example Manager") // Get a reference to the "Example Manager"
 
 // func Kill(managerName string) error { ... }
 err := managers.Kill("Example Manager") // Kill the "Example Manager"

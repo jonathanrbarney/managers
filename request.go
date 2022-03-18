@@ -29,7 +29,12 @@ type responseStruct struct {
 	Error error
 }
 
-// Send will send a request to a specified manager
+
+/////////////
+// METHODS //
+/////////////
+
+// Binding for manager.SendRequest() with the overhead of fetching manager by name.
 func (request *Request) Send(managerName string) error {
 
 	// Get the required manager
@@ -46,39 +51,62 @@ func (request *Request) Send(managerName string) error {
 
 }
 
-// Await will wait until a request is completed and respond with the result
+// Binding for manager.AwaitRequest() with the overhead of fetching manager by name.
 func (request *Request) Await(managerName string) (interface{}, error) {
 
-	// First send the request
-	err := request.Send(managerName)
+	// Get the required manager
+	manager, ok := getManager(managerName)
 
-	// If there is an error, respond with it
-	if err != nil {
-		return nil, err
+	// If the manager doesn't exist, respond with an error
+	if !ok {
+		return nil, errors.New(managerName + " manager is not created or has been deleted (occurred during request send).")
 	}
 
-	// Otherwise wait for completion and return the result
-	return request.Wait()
+	// Call the binding
+	return manager.AwaitRequest(request)
 
 }
 
-// Send will send a request to a specified manager
+// Inverse binding for manager.SendRequest().
 func (request *Request) SendManager(manager *Manager) {
 
-	// Otherwise, send the request to the manager and return with no errors
+	// Call the manager binding
 	manager.SendRequest(request)
 
 }
 
-// Await will wait until a request is completed and respond with the result
+// Inverse binding for manager.AwaitRequest().
 func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
 
-	// First send the request
-	request.SendManager(manager)
+	// Call the manager binding
+	return manager.AwaitRequest(request)
 
-	// Otherwise wait for completion and return the result
-	return request.Wait()
+}
 
+// Wait is used for a job which has already been sent and the response wants to be waited on.
+// 	Once the response is given, the data will be parsed and returned.
+func (request *Request) Wait() (interface{}, error) {
+
+	// Just wait for data to be put in the response
+	response := <-request.response
+	return response.getData()
+
+}
+
+// Check to see if the request has been carried out yet. As long as there are responses,
+// 	the request "has data"
+func (request *Request) HasData() bool {
+	return len(request.response) > 0
+}
+
+
+////////////////////////
+// INTERNAL FUNCTIONS //
+////////////////////////
+
+// Internal function for storing a response
+func (request *Request) storeResponse(response responseStruct) {
+	request.response <- response
 }
 
 /*
@@ -88,6 +116,7 @@ func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
 */
 func (response *responseStruct) getData() (interface{}, error) {
 
+	// If there is no error, we need to extract the actual data.
 	if response.Error == nil {
 		data := response.Data
 
@@ -109,26 +138,7 @@ func (response *responseStruct) getData() (interface{}, error) {
 		return response.Data, nil
 	}
 
+	// If there is an error, we just return it.
 	return nil, response.Error
 
-}
-
-// Wait is used for a job which has already been sent and the response wants to be waited on.
-// 	Once the response is given, the data will be parsed and returned.
-func (request *Request) Wait() (interface{}, error) {
-
-	// Just wait for data to be put in the response
-	response := <-request.response
-	return response.getData()
-
-}
-
-// Check to see if the request has been carried out yet
-func (request *Request) HasData() bool {
-	return len(request.response) > 0
-}
-
-// Internal function for storing a response
-func (request *Request) storeResponse(response responseStruct) {
-	request.response <- response
 }
