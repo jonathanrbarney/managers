@@ -10,7 +10,7 @@ import (
 
 const PROCESS_DELAY = 30 // In milliseconds
 const TEST_DURATION = 10 // In seconds
-const JOB_INTERVAL = 25 // In milliseconds
+const JOB_INTERVAL = 25  // In milliseconds
 
 // Test for public bindings. These are the binding you can use to ask for a
 // 	manager to do something without hanving a handle on the actual manager object.
@@ -33,17 +33,35 @@ func Test_Public_Bindings(t *testing.T) {
 	// Ensure all managers have finished processing before shutting down
 	<-time.Tick(3 * time.Second)
 
-	if err := Detach("Manager 1", "get"); err != nil { t.Fail() }
-	if err := Detach("Manager 1", "setStatus"); err != nil { t.Fail() }
-	if err := Detach("Manager 1", "setValue"); err != nil { t.Fail() }
-	if err := Detach("Manager 1", "square"); err != nil { t.Fail() }
+	if err := Detach("Manager 1", "get"); err != nil {
+		t.Fail()
+	}
+	if err := Detach("Manager 1", "setStatus"); err != nil {
+		t.Fail()
+	}
+	if err := Detach("Manager 1", "setValue"); err != nil {
+		t.Fail()
+	}
+	if err := Detach("Manager 1", "square"); err != nil {
+		t.Fail()
+	}
 
-	if err := KillAndRemove("Manager 1"); err != nil { t.Fail() }
-	if err := KillAndRemove("Manager 2"); err != nil { t.Fail() }
-	if err := KillAndRemove("Manager 3"); err != nil { t.Fail() }
-	if err := KillAndRemove("Manager 4"); err != nil { t.Fail() }
+	if err := KillAndRemove("Manager 1"); err != nil {
+		t.Fail()
+	}
+	if err := KillAndRemove("Manager 2"); err != nil {
+		t.Fail()
+	}
+	if err := KillAndRemove("Manager 3"); err != nil {
+		t.Fail()
+	}
+	if err := KillAndRemove("Manager 4"); err != nil {
+		t.Fail()
+	}
 
-	if len(managersMap) != 0 { t.Fail() }
+	if len(managersMap) != 0 {
+		t.Fail()
+	}
 
 }
 
@@ -69,12 +87,22 @@ func Test_Manager(t *testing.T) {
 	m1.Detach("setValue")
 	m1.Detach("square")
 
-	if err := m1.KillAndRemove(); err != nil { t.Fail() }
-	if err := m2.KillAndRemove(); err != nil { t.Fail() }
-	if err := m3.KillAndRemove(); err != nil { t.Fail() }
-	if err := m4.KillAndRemove(); err != nil { t.Fail() }
+	if err := m1.KillAndRemove(); err != nil {
+		t.Fail()
+	}
+	if err := m2.KillAndRemove(); err != nil {
+		t.Fail()
+	}
+	if err := m3.KillAndRemove(); err != nil {
+		t.Fail()
+	}
+	if err := m4.KillAndRemove(); err != nil {
+		t.Fail()
+	}
 
-	if len(managersMap) != 0 { t.Fail() }
+	if len(managersMap) != 0 {
+		t.Fail()
+	}
 
 }
 
@@ -84,10 +112,16 @@ func Test_hasData(t *testing.T) {
 	go m.Start(&State{Status: "Starting Up", Value: 0})
 	<-time.Tick(5 * time.Millisecond)
 	r := m.Send("setStatus", "Status 1")
-	if (m.IsRunning() != true) { t.Error("Didn't show manager as running") }
-	if (r.HasData() == true) { t.Error("Didn't show request as incomplete") }
+	if m.IsRunning() != true {
+		t.Error("Didn't show manager as running")
+	}
+	if r.HasData() == true {
+		t.Error("Didn't show request as incomplete")
+	}
 	<-time.Tick(5 * PROCESS_DELAY * time.Millisecond)
-	if (r.HasData() == false) { t.Error("Didn't show request as complete") }
+	if r.HasData() == false {
+		t.Error("Didn't show request as complete")
+	}
 }
 
 /////////////////////////
@@ -97,17 +131,29 @@ func createPublicManager(t *testing.T, managerName string, bufferSize int) {
 
 	// First, create a manager with the specified name
 	_, err := NewManager(managerName, bufferSize)
-	if err != nil { t.Fail() }
+	if err != nil {
+		t.Fail()
+	}
 
 	// Then we want to attach all the routes
-	if err := Attach(managerName, "get", getTestState); err != nil { t.Fail() }
-	if err := Attach(managerName, "setStatus", setTestStatus); err != nil { t.Fail() }
-	if err := Attach(managerName, "setValue", setTestValue); err != nil { t.Fail() }
-	if err := Attach(managerName, "square", getTestSquare); err != nil { t.Fail() }
+	if err := Attach(managerName, "get", getTestState); err != nil {
+		t.Fail()
+	}
+	if err := Attach(managerName, "setStatus", setTestStatus); err != nil {
+		t.Fail()
+	}
+	if err := Attach(managerName, "setValue", setTestValue); err != nil {
+		t.Fail()
+	}
+	if err := Attach(managerName, "square", getTestSquare); err != nil {
+		t.Fail()
+	}
 
 	// Now we create the original state and use that to start the manager
 	state := &State{Status: "Starting Up", Value: 0}
-	if err := Start(managerName, state); err != nil { t.Fail() }
+	if err := Start(managerName, state); err != nil {
+		t.Fail()
+	}
 
 }
 
@@ -115,7 +161,9 @@ func createHandledManager(t *testing.T, managerName string, bufferSize int) *Man
 
 	// First, create a manager with the specified name
 	manager, err := NewManager(managerName, bufferSize)
-	if err != nil { t.Fail() }
+	if err != nil {
+		t.Fail()
+	}
 
 	// Then we want to attach all the routes
 	manager.Attach("get", getTestState)
@@ -143,17 +191,23 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 		if manager == nil {
 			if await {
 				response, err := Await(managerName, route, request)
-				if err != nil { t.Fail() }
+				if err != nil {
+					t.Fail()
+				}
 				return response
 			} else {
 				_, err := Send(managerName, route, request)
-				if err != nil { t.Fail() }
+				if err != nil {
+					t.Fail()
+				}
 				return nil
 			}
 		} else {
 			if await {
 				response, err := manager.Await(route, request)
-				if err != nil { t.Fail() }
+				if err != nil {
+					t.Fail()
+				}
 				return response
 			} else {
 				manager.Send(route, request)
@@ -168,17 +222,23 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 		if manager == nil {
 			if await {
 				response, err := request.Await(managerName)
-				if err != nil { t.Fail() }
+				if err != nil {
+					t.Fail()
+				}
 				return response
 			} else {
 				err := request.Send(managerName)
-				if err != nil { t.Fail() }
+				if err != nil {
+					t.Fail()
+				}
 				return nil
 			}
 		} else {
 			if await {
 				response, err := request.AwaitManager(manager)
-				if err != nil { t.Fail() }
+				if err != nil {
+					t.Fail()
+				}
 				return response
 			} else {
 				request.SendManager(manager)
@@ -196,7 +256,6 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 		}
 	}
 
-
 	/////////////////
 	// ACTUAL TEST //
 	/////////////////
@@ -212,11 +271,11 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 		select {
 
 		// The test is over if the duration ticker finishes
-		case <- durationTicker.C:
+		case <-durationTicker.C:
 			return
-		
+
 		// Otherwise, we are going to handle a request
-		case <- intervalTicker.C:
+		case <-intervalTicker.C:
 
 			// Select a random operation to perform
 			choice := []string{"get", "setStatus", "setValue", "square"}[rand.Intn(4)]
@@ -240,17 +299,17 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 				}[rand.Intn(12)]
 				performRequest("setStatus", false, newStatus)
 				referenceState.Status = newStatus
-			
+
 			// If "setValue" case, just send the request and update local memory
 			case "setValue":
 				newValue := rand.Intn(1_000_000)
 				performRequest("setValue", false, newValue)
 				referenceState.Value = newValue
-			
+
 			case "square":
 				response := performRequest("square", true, nil)
 				square := response.(int)
-				if square != referenceState.Value * referenceState.Value {
+				if square != referenceState.Value*referenceState.Value {
 					t.Fail()
 				}
 			}
@@ -265,7 +324,7 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 ///////////////
 type State struct {
 	Status string
-	Value int
+	Value  int
 }
 
 ////////////////////

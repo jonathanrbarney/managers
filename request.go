@@ -29,7 +29,6 @@ type responseStruct struct {
 	Error error
 }
 
-
 /////////////
 // METHODS //
 /////////////
@@ -98,7 +97,6 @@ func (request *Request) Wait() (interface{}, error) {
 func (request *Request) HasData() bool {
 	return len(request.response) > 0
 }
-
 
 ////////////////////////
 // INTERNAL FUNCTIONS //

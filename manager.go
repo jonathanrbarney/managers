@@ -38,8 +38,6 @@ func deleteManager(managerName string) {
 	delete(managersMap, managerName)
 }
 
-
-
 /////////////
 // MANAGER //
 /////////////
@@ -104,7 +102,7 @@ func (manager *Manager) Start(managerState interface{}) {
 			request.storeResponse(response)
 			break
 
-		// User defined commands will end up here
+			// User defined commands will end up here
 		} else {
 
 			// Check to see if that route was added.
@@ -158,7 +156,6 @@ func (manager *Manager) IsRunning() bool {
 	return manager.running
 }
 
-
 ///////////////////////
 // REQUEST FUNCTIONS //
 ///////////////////////
@@ -204,7 +201,6 @@ func (manager *Manager) AwaitRequest(request *Request) (interface{}, error) {
 	return request.Wait()
 }
 
-
 /////////////
 // CONTROL //
 /////////////
@@ -228,7 +224,7 @@ func (manager *Manager) Remove() error {
 	if manager.IsRunning() {
 		return errors.New("Unable to remove manager " + manager.Name + " because it is currently running.")
 	}
-	
+
 	deleteManager(manager.Name)
 	return nil
 }
@@ -246,7 +242,6 @@ func (manager *Manager) KillAndRemove() error {
 	return manager.Remove()
 
 }
-
 
 ///////////////
 // FUNCTIONS //

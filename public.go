@@ -20,7 +20,7 @@ func NewManager(name string, bufferSize int) (*Manager, error) {
 	newManager := &Manager{
 		Name:      name,
 		requests:  make(chan *Request, bufferSize),
-		running: false,
+		running:   false,
 		functions: make(map[string]func(managerState interface{}, request interface{}) interface{}),
 		stateLock: sync.Mutex{},
 	}
@@ -51,7 +51,6 @@ func NewRequest(route string, data interface{}) *Request {
 		response: make(chan responseStruct, 1),
 	}
 }
-
 
 //////////////
 // REQUESTS //
@@ -121,7 +120,6 @@ func AwaitRequest(managerName string, request *Request) (interface{}, error) {
 	return manager.AwaitRequest(request)
 }
 
-
 /////////////////////
 // MANAGER CONTROL //
 /////////////////////
@@ -176,14 +174,13 @@ func Start(managerName string, managerState interface{}) error {
 
 }
 
-
 /////////////////////////////////////
 // PUBLIC MANAGER CONTROL BINDINGS //
 /////////////////////////////////////
 
 // Simple function for fetching a manager by name
 func GetManager(managerName string) (*Manager, error) {
-	
+
 	// First grab the manager
 	manager, exists := getManager(managerName)
 	if !exists {
@@ -201,7 +198,6 @@ func Kill(managerName string) error {
 	if !exists {
 		return errors.New(managerName + " manager doesn't exist or has been deleted (occurred during kil).")
 	}
-
 
 	// Just send a kill request and wait for completion
 	return manager.Kill()
