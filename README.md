@@ -9,6 +9,7 @@ Below are a couple standard usages for the package and how you would implement t
 ## Public Methods
 
 ### New Manager
+
 ```go
 // func NewManager(
 //     name string, bufferSize int
@@ -51,6 +52,7 @@ request := managers.NewRequest("multiply", 42)
 err := managers.SendRequest("Example Manager", request)
 response, err := managers.AwaitRequest("Example Manager", request)
 ```
+
 `Send()` and `Await()` will create a request with the data `42` and send it to the manager named `"Example Manager"` if it exists at the route `"multiply"`. `Send()` **IS NOT** blocking and will immediately return with the generated request object when the job has been successfully sent to the manager. `Await()` **IS** blocking and will wait until the manager process the request or there is an error before returning with the relevant response.
 
 `SendRequest()` and `AwaitRequest()` will send a premade request and will emulate the same functions as above.
@@ -82,7 +84,7 @@ func exampleMultiplication(
         return errors.New("Invalid Request Type!")
     }
 
-	return *stateValue * requestValue
+    return *stateValue * requestValue
 
 }
 
@@ -134,6 +136,7 @@ go manager.Start( &state )
 The above will start a manager with the state `42`. In general, the state passed in should be of the pointer type so that data can be updated by the internal routes. You can leave this nil if the manager state is always accessible by the bound functions. See example above for some different use cases. This function is **BLOCKING**. If you want it to run in the background, detach it.
 
 ### Attach and Detach
+
 ```go
 // func (manager *Manager) Attach(
 //     route string,
@@ -158,7 +161,7 @@ func exampleMultiplication(
         return errors.New("Invalid Request Type!")
     }
 
-	return *stateValue * requestValue
+    return *stateValue * requestValue
 
 }
 
@@ -176,6 +179,7 @@ The above will attach the `exampleMultiplication` function to an existing manage
 Detach will simply remove the attached handler.
 
 ### Request Methods
+
 ```go
 
 manager, err := managers.NewManager("Example Manager", 128)
@@ -198,6 +202,7 @@ response := manager.AwaitRequest(request)
 `SendRequest()` and `AwaitRequest()` will send a premade request to the manager and then process in the expected way.
 
 ### Control Methods
+
 ```go
 
 manager, err := managers.NewManager("Example Manager", 128)
@@ -219,8 +224,12 @@ err := manager.Remove() // Removes the manager from memory
 err := manager.KillAndRemove() // Does the above to function in sequence.
 ```
 
-## Request Methods
+## Requests Methods
+
+Collection of all the methods you can make on the request object.
+
 ### Send
+
 ```go
 // func (request *Request) Send(managerName string) error { ... }
 
@@ -231,6 +240,7 @@ err := request.Send("Example Manager")
 This will send a request to the Example Manager with the data `42`. It is not blocking.
 
 ### SendManager
+
 ```go
 // func (request *Request) SendManager(manager *Manager) { ... }
 
@@ -245,6 +255,7 @@ request.SendManager(manager)
 The above will send a job to a predefined Manager. It is this same as `Send()` but doesn't lookup a manager by name.
 
 ### Await
+
 ```go
 // func (request *Request) Await(managerName string) (interface{}, error) { ... }
 
@@ -255,6 +266,7 @@ response, err := request.Await("Example Manager)
 This will send a request to the Example Manager with the data `42`. It is blocking and will wait for the process to complete.
 
 ### AwaitManager
+
 ```go
 // func (request *Request) AwaitManager(manager *Manager) (interface{}, error) { ... }
 
@@ -266,7 +278,9 @@ response err := request.AwaitManager(manager)
 ```
 
 The above will await a job at a predefined manager. It i the same as `AwaitManager()` but doesn't lookup a manager by name.
+
 ### Wait
+
 ```go
 // func (request *Request) Wait() (interface{}, error) { ... }
 
@@ -282,6 +296,7 @@ The above will wait for a job that has been sent to finally be processed. You ca
 Wait is called by `Await()` as well. The important thing to note, is `Wait()` is what every function uses to fetch responses. If you have nested request objects for whatever reason, this will automatically follow the nested pattern and return the final result.
 
 ### Has Data
+
 ```go
 // func (request *Request) HasData() bool { ... }
 request := managers.NewRequest("multiply", 42)
@@ -296,22 +311,22 @@ The above will check to see if a request has data yet or not.
 
 There are two main structs provided in this package, `Request` and `Manager`. The `ManagerFunction` is just a specified function type which is handled by the managers.
 
-
 ### Manager
 
 The manager handles basically everything. A manager is responsible for processing requests as they come in. In general, there is no need to ever access any of the values within the manager as there is a Method (Either Public or Private) which will return to you all the information you need in order to run the manager.
 
 ```go
 type Manager struct {
-	Name string
-	requests chan *Request
-	running bool
-	functions map[string]func(managerState interface{}, request interface{}) interface{}
-	stateLock sync.Mutex
+    Name string
+    requests chan *Request
+    running bool
+    functions map[string]func(managerState interface{}, request interface{}) interface{}
+    stateLock sync.Mutex
 }
 ```
 
 #### ManagerFunction
+
 A Manager function is simply a function of the following type:
 `func(managerState interface{}, request interface{}) interface{}`
 These functions can be attached to managers so that the managers can process a range of different tasks. Think of them as API Routes.
@@ -322,16 +337,15 @@ The request object is very simple. It has a specified route it's supposed to be 
 
 ```go
 type Request struct {
-
-	Route string
-	Data interface{}
-	Response chan Response
+    Route string
+    Data interface{}
+    Response chan Response
 }
 ```
 
 ```go
 type Response struct {
-	Data  interface{}
-	Error error
+    Data  interface{}
+    Error error
 }
 ```
