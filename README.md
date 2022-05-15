@@ -1,12 +1,18 @@
-# managers
+# Managers
 
-`import "github.com/flywinged/managers"`
+To include in your repository: `import "github.com/flywinged/managers"`
 
-Server-Like Local State Management System for Golang. Managers is intended to be used in instances where many goroutines all need to coordinated access to some shared state. The intent is to make it easier to write these applications by allowing the developer to not need to worry about memory read/write race conditions.
+Managers is a server-Like Local State Management System for Golang. It is intended to be used in instances where many goroutines all need to coordinated access to some shared state. The goal is to make it easier to write these applications by allowing the developer to not need to worry about memory read and write race conditions.
 
 Below are a couple standard usages for the package and how you would implement them. It is comprehensive and includes every binding you should be using while using `managers`.
 
+## Error Logging
+
+Managers by default will log thier processing errors to the console. If you'd like to omit this, then include: `managers.LOG_PROCESSING_ERRORS = false`
+
 ## Public Methods
+
+Public methods are methods which are accessible globally from anywhere. These kinds of bindings are most useful when building a system which is dynamic enough that you are unable to have a handle on all the managers.
 
 ### New Manager
 

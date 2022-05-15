@@ -19,6 +19,10 @@ import (
 var managersMap = make(map[string]*Manager)
 var managersLock = sync.Mutex{}
 
+// Used to determine whether or not errors which occured during a manager processing
+// 	a function are logged to the console or not.
+var LOG_PROCESSING_ERRORS = true
+
 // getManager is an internal function to grab a manager from the managersMap.
 // 	This function uses the managersLock to ensure thread safety.
 func getManager(managerName string) (*Manager, bool) {
@@ -70,7 +74,8 @@ type Manager struct {
 
 // Start will start the processing function for the manager. The for loop below is the
 // 	loop which handles the process. It's very straightforward. Just loop through and process
-// 	each request as they come through until a kill request is sent.
+// 	each request as they come through until a kill request is sent. This function is blocking
+// 	and you should detatch it if you want the manager to function correctly.
 func (manager *Manager) Start(managerState interface{}) {
 
 	// Freeze the state so that the manager can be set to running. Then unfreeze so
@@ -79,7 +84,7 @@ func (manager *Manager) Start(managerState interface{}) {
 	manager.running = true
 	manager.stateLock.Unlock()
 
-	// Big for loop for the manager to handle incomming requests
+	// Big for loop for the manager to handle incomming requests.
 	for {
 
 		// Wait for a request to come in before parsing it
@@ -95,7 +100,9 @@ func (manager *Manager) Start(managerState interface{}) {
 
 		// Internal kill command for the manager. When manager.Kill() is called, it
 		// 	will send this route. This will just store an arbitrary response and then
-		// 	break out of the processing loop.
+		// 	break out of the processing loop. Technically a user shouldn't be allowed
+		// 	to attach a route with this name, but since it won't break anything, we won't
+		// 	strictly enforce it.
 		if request.Route == "state|kill-manager" {
 
 			// Signify the request was processed and then break out of the processing loop.
@@ -106,15 +113,15 @@ func (manager *Manager) Start(managerState interface{}) {
 		} else {
 
 			// Check to see if that route was added.
-			//	If it wasn't, create an error.
+			//	If it wasn't, return an error.
 			//	If it was, process the job .
 			function, ok := manager.getFunction(request.Route)
 			if !ok {
 				response.Error = errors.New("No function named " + request.Route + " added to " + manager.Name + " manager.")
 			} else {
 
-				// If here, it's time to process the job. We simply send the managerState to the
-				// 	processing function along with the requested data.
+				// If here, it's time to process the job. We simply send the current managerState
+				// 	to the processing function along with the requested data.
 				response.Data = function(managerState, request.Data)
 
 				// If there is an error with the process, set the error appropriately. Also
@@ -125,9 +132,8 @@ func (manager *Manager) Start(managerState interface{}) {
 				}
 			}
 
-			// If there is an error, just let the user know about it.
-			// TODO: Maybe find a better way to handle this? I think this is ok for now though.
-			if response.Error != nil {
+			// If there is an error, just let the user know about it. (If they have logging enabled that is.)
+			if response.Error != nil && LOG_PROCESSING_ERRORS {
 				fmt.Println("Error in manager, " + manager.Name + ":")
 				fmt.Println(response.Error)
 			}
