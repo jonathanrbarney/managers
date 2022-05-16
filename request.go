@@ -14,8 +14,8 @@ type Request struct {
 	// Route is used to determine what this request is asking for.
 	Route string
 
-	// Data is the information being transfered during the request.
-	Data interface{}
+	// Data is the information being transferred during the request.
+	Data any
 
 	// Response is what is sent back when the process is finished
 	// Response is a channel so that await commands can wait for the process
@@ -25,7 +25,7 @@ type Request struct {
 
 // responseStruct is the default type returned by objects
 type responseStruct struct {
-	Data  interface{}
+	Data  any
 	Error error
 }
 
@@ -51,7 +51,7 @@ func (request *Request) Send(managerName string) error {
 }
 
 // Binding for manager.AwaitRequest() with the overhead of fetching manager by name.
-func (request *Request) Await(managerName string) (interface{}, error) {
+func (request *Request) Await(managerName string) (any, error) {
 
 	// Get the required manager
 	manager, ok := getManager(managerName)
@@ -75,7 +75,7 @@ func (request *Request) SendManager(manager *Manager) {
 }
 
 // Inverse binding for manager.AwaitRequest().
-func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
+func (request *Request) AwaitManager(manager *Manager) (any, error) {
 
 	// Call the manager binding
 	return manager.AwaitRequest(request)
@@ -84,7 +84,7 @@ func (request *Request) AwaitManager(manager *Manager) (interface{}, error) {
 
 // Wait is used for a job which has already been sent and the response wants to be waited on.
 // 	Once the response is given, the data will be parsed and returned.
-func (request *Request) Wait() (interface{}, error) {
+func (request *Request) Wait() (any, error) {
 
 	// Just wait for data to be put in the response
 	response := <-request.response
@@ -112,7 +112,7 @@ func (request *Request) storeResponse(response responseStruct) {
 	not there is an error present in the data. Handy for use when you
 	have nested response objects.
 */
-func (response *responseStruct) getData() (interface{}, error) {
+func (response *responseStruct) getData() (any, error) {
 
 	// If there is no error, we need to extract the actual data.
 	if response.Error == nil {
@@ -122,7 +122,7 @@ func (response *responseStruct) getData() (interface{}, error) {
 			If the data is a channel, we want to wait until data is passed into that channel
 			and then use that data as the main data response.
 		*/
-		responseChannel, ok := data.(chan interface{})
+		responseChannel, ok := data.(chan any)
 		if ok {
 			data = <-responseChannel
 		}

@@ -8,7 +8,7 @@ Below are a couple standard usages for the package and how you would implement t
 
 ## Error Logging
 
-Managers by default will log thier processing errors to the console. If you'd like to omit this, then include: `managers.LOG_PROCESSING_ERRORS = false`
+Managers by default will log their processing errors to the console. If you'd like to omit this, then include: `managers.LOG_PROCESSING_ERRORS = false`
 
 ## Public Methods
 
@@ -30,7 +30,7 @@ This will create a new manager object with the specified buffer size.The buffer 
 
 ```go
 // func NewRequest(
-//     route string, data interface{}
+//     route string, data any
 // ) *Request { ... }
 
 request := managers.NewRequest("multiply", 42)
@@ -42,14 +42,14 @@ This will create a new request object which is assigned to the route `"multiply"
 
 ```go
 // func Send(
-//     managerName string, route string, data interface{}
+//     managerName string, route string, data any
 // ) (*Request, error) { ... }
 
 request, err := managers.Send("Example Manager", "multiply", 42)
 
 // func Await(
-//     managerName string, route string, data interface{}
-// ) (interface{}, error) { ... }
+//     managerName string, route string, data any
+// ) (any, error) { ... }
 
 response, err := managers.Await("Example Manager", "multiply", 42)
 
@@ -69,12 +69,12 @@ response, err := managers.AwaitRequest("Example Manager", request)
 // func Attach(
 //      managerName string,
 //      route string,
-//      f func(interface{}, interface{}) interface{}
+//      f func(any, any) any
 // ) error { ... }
 
 func exampleMultiplication(
-    managerState interface{}, request interface{}
-) interface{} {
+    managerState any, request any
+) any {
     // Simple example function which will return the
     //  multiplication of whatever value is in the state
     //  with whatever value is in the request.
@@ -97,10 +97,10 @@ func exampleMultiplication(
 err := managers.Attach("Example Manager", "multiply", exampleMultiplication)
 
 // func Detach(managerName string, route string) error { ... }
-managers.Detach("Ecample Manager", "multiply")
+managers.Detach("Example Manager", "multiply")
 ```
 
-The above will attach the `exampleMultiplication` function to an existing manager `"Example Manager"` at the route `"multiply"`. Whenever a request is sent to this manager with that route, it will be handled by this funtion. Errors are automatically handled and will be returned accordingly.
+The above will attach the `exampleMultiplication` function to an existing manager `"Example Manager"` at the route `"multiply"`. Whenever a request is sent to this manager with that route, it will be handled by this function. Errors are automatically handled and will be returned accordingly.
 
 The detach function will simply remove the handler from the manager.
 
@@ -110,7 +110,7 @@ See Manager Methods heading below for more in depth detail of each.
 
 ```go
 
-// func Start(managerName string, managerState interface{}) error { ... }
+// func Start(managerName string, managerState any) error { ... }
 err := managers.Start("Example Manager", nil) // Start the "Example Manager" with a nil state
 
 // func getManager(managerName string) (*Manager, error) { ... }
@@ -123,7 +123,7 @@ err := managers.Kill("Example Manager") // Kill the "Example Manager"
 err := managers.Remove("Example Manager") // Remove all internal references to "Example Manager"
 
 // func KillAndRemove(managerName string) error { ... }
-err := managers.KillAndRevmoe("Example Manager") // Stop the "Example Manager" and then remove all internal references to it.
+err := managers.KillAndRemove("Example Manager") // Stop the "Example Manager" and then remove all internal references to it.
 ```
 
 ## Manager Methods
@@ -131,7 +131,7 @@ err := managers.KillAndRevmoe("Example Manager") // Stop the "Example Manager" a
 ### Start
 
 ```go
-// func (manager *Manager) Start(managerState interface{}) { ... }
+// func (manager *Manager) Start(managerState any) { ... }
 
 manager, err := managers.NewManager("Example Manager", 128)
 
@@ -146,12 +146,12 @@ The above will start a manager with the state `42`. In general, the state passed
 ```go
 // func (manager *Manager) Attach(
 //     route string,
-//     function func(managerState interface{}, request interface{}) interface{}
+//     function func(managerState any, request any) any
 // ) { ... }
 
 func exampleMultiplication(
-    managerState interface{}, request interface{}
-) interface{} {
+    managerState any, request any
+) any {
     // Simple example function which will return the
     //  multiplication of whatever value is in the state
     //  with whatever value is in the request.
@@ -180,7 +180,7 @@ manager.Attach("multiply", exampleMultiplication)
 manager.Detach("multiply")
 ```
 
-The above will attach the `exampleMultiplication` function to an existing manager at the route `"multiply"`. Whenever a request is sent to this manager with that route, it will be handled by this funtion. Errors are automatically handled and will be returned accordingly.
+The above will attach the `exampleMultiplication` function to an existing manager at the route `"multiply"`. Whenever a request is sent to this manager with that route, it will be handled by this function. Errors are automatically handled and will be returned accordingly.
 
 Detach will simply remove the attached handler.
 
@@ -191,10 +191,10 @@ Detach will simply remove the attached handler.
 manager, err := managers.NewManager("Example Manager", 128)
 go manager.Start(42)
 
-// func (manager *Manager) Send(route string, data interface{}) *Request { ... }
+// func (manager *Manager) Send(route string, data any) *Request { ... }
 request := manager.Send("multiply", 3)
 
-// func (manager *Manager) Await(route string, data interface{}) (interface{}, error) { ... }
+// func (manager *Manager) Await(route string, data any) (any, error) { ... }
 response, err := manager.Await("multiply", 3)
 
 // func (manager *Manager) SendRequest(request *Request) { ... }
@@ -203,7 +203,7 @@ manager.SendRequest(request)
 response := manager.AwaitRequest(request)
 ```
 
-`Send()` and `Await()` will send a job to the `"multiply"` route with a value of `42`. The `Send()` route is not blocking and will not recieve a response, the `Await()` function is blocking and will recieve a response.
+`Send()` and `Await()` will send a job to the `"multiply"` route with a value of `42`. The `Send()` route is not blocking and will not receive a response, the `Await()` function is blocking and will receive a response.
 
 `SendRequest()` and `AwaitRequest()` will send a premade request to the manager and then process in the expected way.
 
@@ -263,7 +263,7 @@ The above will send a job to a predefined Manager. It is this same as `Send()` b
 ### Await
 
 ```go
-// func (request *Request) Await(managerName string) (interface{}, error) { ... }
+// func (request *Request) Await(managerName string) (any, error) { ... }
 
 request := managers.NewRequest("multiply", 42)
 response, err := request.Await("Example Manager)
@@ -274,7 +274,7 @@ This will send a request to the Example Manager with the data `42`. It is blocki
 ### AwaitManager
 
 ```go
-// func (request *Request) AwaitManager(manager *Manager) (interface{}, error) { ... }
+// func (request *Request) AwaitManager(manager *Manager) (any, error) { ... }
 
 manager, err := managers.NewManager("Example Manager", 128)
 go manager.Start(42)
@@ -288,7 +288,7 @@ The above will await a job at a predefined manager. It i the same as `AwaitManag
 ### Wait
 
 ```go
-// func (request *Request) Wait() (interface{}, error) { ... }
+// func (request *Request) Wait() (any, error) { ... }
 
 request := managers.NewRequest("multiply", 42)
 err := request.Send("Example Manager")
@@ -308,7 +308,7 @@ Wait is called by `Await()` as well. The important thing to note, is `Wait()` is
 request := managers.NewRequest("multiply", 42)
 err := request.Send("Example Manager")
 
-hasDatad := request.HasData()
+hasData := request.HasData()
 ```
 
 The above will check to see if a request has data yet or not.
@@ -326,7 +326,7 @@ type Manager struct {
     Name string
     requests chan *Request
     running bool
-    functions map[string]func(managerState interface{}, request interface{}) interface{}
+    functions map[string]func(managerState any, request any) any
     stateLock sync.Mutex
 }
 ```
@@ -334,7 +334,7 @@ type Manager struct {
 #### ManagerFunction
 
 A Manager function is simply a function of the following type:
-`func(managerState interface{}, request interface{}) interface{}`
+`func(managerState any, request any) any`
 These functions can be attached to managers so that the managers can process a range of different tasks. Think of them as API Routes.
 
 ### Request
@@ -344,14 +344,14 @@ The request object is very simple. It has a specified route it's supposed to be 
 ```go
 type Request struct {
     Route string
-    Data interface{}
+    Data any
     Response chan Response
 }
 ```
 
 ```go
 type Response struct {
-    Data  interface{}
+    Data  any
     Error error
 }
 ```

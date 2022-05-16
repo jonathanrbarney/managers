@@ -11,7 +11,7 @@ import (
 NewManager will return a blank manager for use.
 Buffer size is the number of requests for the manager to hold onto until it starts blocking
 requests. The appropriate number will depend on how many requests you expect the manager
-to recieve and how long each request takes to process.
+to receive and how long each request takes to process.
 */
 func NewManager(name string, bufferSize int) (*Manager, error) {
 
@@ -21,7 +21,7 @@ func NewManager(name string, bufferSize int) (*Manager, error) {
 		Name:      name,
 		requests:  make(chan *Request, bufferSize),
 		running:   false,
-		functions: make(map[string]func(managerState interface{}, request interface{}) interface{}),
+		functions: make(map[string]func(managerState any, request any) any),
 		stateLock: sync.Mutex{},
 	}
 
@@ -44,7 +44,7 @@ func NewManager(name string, bufferSize int) (*Manager, error) {
 // NewRequest will return a new request with the given Route and input Data.
 // 	The response channel will be appropriately generated as well. We default to
 // 	length 1 channel because that's all we really need.
-func NewRequest(route string, data interface{}) *Request {
+func NewRequest(route string, data any) *Request {
 	return &Request{
 		Route:    route,
 		Data:     data,
@@ -57,7 +57,7 @@ func NewRequest(route string, data interface{}) *Request {
 //////////////
 
 // Binding for manager.Send() with the overhead of fetching manager by name.
-func Send(managerName string, route string, data interface{}) (*Request, error) {
+func Send(managerName string, route string, data any) (*Request, error) {
 
 	// Get the manager
 	manager, ok := getManager(managerName)
@@ -91,7 +91,7 @@ func SendRequest(managerName string, request *Request) error {
 }
 
 // Binding for manager.Await() with the overhead of fetching manager by name.
-func Await(managerName string, route string, data interface{}) (interface{}, error) {
+func Await(managerName string, route string, data any) (any, error) {
 
 	// Get the manager
 	manager, ok := getManager(managerName)
@@ -107,7 +107,7 @@ func Await(managerName string, route string, data interface{}) (interface{}, err
 }
 
 // Binding for manager.AwaitRequest() with the overhead of fetching manager by name.
-func AwaitRequest(managerName string, request *Request) (interface{}, error) {
+func AwaitRequest(managerName string, request *Request) (any, error) {
 	// Get the manager
 	manager, ok := getManager(managerName)
 
@@ -125,7 +125,7 @@ func AwaitRequest(managerName string, request *Request) (interface{}, error) {
 /////////////////////
 
 // Binding for manager.Attach() with the overhead of fetching manager by name.
-func Attach(managerName string, route string, f func(interface{}, interface{}) interface{}) error {
+func Attach(managerName string, route string, f func(any, any) any) error {
 
 	// First grab the manager
 	manager, exists := getManager(managerName)
@@ -160,7 +160,7 @@ func Detach(managerName string, route string) error {
 
 // Binding for manager.Start() with the overhead of fetching manager by name. The only
 // 	difference is that the manager will automatically start detached. (Non-blocking call)
-func Start(managerName string, managerState interface{}) error {
+func Start(managerName string, managerState any) error {
 
 	// First grab the manager
 	manager, exists := getManager(managerName)

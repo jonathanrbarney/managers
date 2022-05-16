@@ -19,7 +19,7 @@ import (
 var managersMap = make(map[string]*Manager)
 var managersLock = sync.Mutex{}
 
-// Used to determine whether or not errors which occured during a manager processing
+// Used to determine whether or not errors which occurred during a manager processing
 // 	a function are logged to the console or not.
 var LOG_PROCESSING_ERRORS = true
 
@@ -64,7 +64,7 @@ type Manager struct {
 
 	// Functions is a map of request type to respective processing function.
 	//	These functions will take in a request interface and respond with a response interface.
-	functions map[string]func(managerState interface{}, request interface{}) interface{}
+	functions map[string]func(managerState any, request any) any
 
 	// stateLock determines whether or not values in the Manager can be read or editted.
 	// 	The only exception is the Name, which the "managers" package doesn't care about.
@@ -75,8 +75,8 @@ type Manager struct {
 // Start will start the processing function for the manager. The for loop below is the
 // 	loop which handles the process. It's very straightforward. Just loop through and process
 // 	each request as they come through until a kill request is sent. This function is blocking
-// 	and you should detatch it if you want the manager to function correctly.
-func (manager *Manager) Start(managerState interface{}) {
+// 	and you should detach it if you want the manager to function correctly.
+func (manager *Manager) Start(managerState any) {
 
 	// Freeze the state so that the manager can be set to running. Then unfreeze so
 	// 	the rest of the data can be read (like the functions)
@@ -84,7 +84,7 @@ func (manager *Manager) Start(managerState interface{}) {
 	manager.running = true
 	manager.stateLock.Unlock()
 
-	// Big for loop for the manager to handle incomming requests.
+	// Big for loop for the manager to handle incoming requests.
 	for {
 
 		// Wait for a request to come in before parsing it
@@ -168,7 +168,7 @@ func (manager *Manager) IsRunning() bool {
 
 // Send will send a job to the manager and not wait for completion. See Request.Send()
 // 	for a more detailed description of how this works.
-func (manager *Manager) Send(route string, data interface{}) *Request {
+func (manager *Manager) Send(route string, data any) *Request {
 
 	// Create a new request object
 	request := NewRequest(route, data)
@@ -190,7 +190,7 @@ func (manager *Manager) SendRequest(request *Request) {
 
 // Await will send a job to the manager and await completion. See Request.Await()
 // 	for a more detailed description of how this works.
-func (manager *Manager) Await(route string, data interface{}) (interface{}, error) {
+func (manager *Manager) Await(route string, data any) (any, error) {
 
 	// Create and send the request to the manager
 	request := manager.Send(route, data)
@@ -202,7 +202,7 @@ func (manager *Manager) Await(route string, data interface{}) (interface{}, erro
 
 // AwaitRequest will queue a premade request to the manager. This is mainly just to ensure
 // 	that the .requests field can stay hidden.
-func (manager *Manager) AwaitRequest(request *Request) (interface{}, error) {
+func (manager *Manager) AwaitRequest(request *Request) (any, error) {
 	manager.SendRequest(request)
 	return request.Wait()
 }
@@ -255,7 +255,7 @@ func (manager *Manager) KillAndRemove() error {
 
 // Attach will attach a function to a manager at a specific route. Once a function is
 // 	attached, requests sent to the manager are able to find and use the function.
-func (manager *Manager) Attach(route string, function func(managerState interface{}, request interface{}) interface{}) {
+func (manager *Manager) Attach(route string, function func(managerState any, request any) any) {
 
 	// This is simple as just attaching the function
 	manager.stateLock.Lock()
@@ -274,7 +274,7 @@ func (manager *Manager) Detach(route string) {
 
 // getFunction returns the function of a given name. This is just an internal function
 // 	to handle race conditions.
-func (manager *Manager) getFunction(route string) (func(managerState interface{}, request interface{}) interface{}, bool) {
+func (manager *Manager) getFunction(route string) (func(managerState any, request any) any, bool) {
 
 	// This is simple as just returning the function
 	manager.stateLock.Lock()

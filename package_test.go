@@ -3,6 +3,7 @@
 package managers
 
 import (
+	"errors"
 	"math/rand"
 	"testing"
 	"time"
@@ -13,8 +14,8 @@ const TEST_DURATION = 10 // In seconds
 const JOB_INTERVAL = 25  // In milliseconds
 
 // Test for public bindings. These are the binding you can use to ask for a
-// 	manager to do something without hanving a handle on the actual manager object.
-// 	In general, this is slower and it's prefered to not do things this way if you don't need to.
+// 	manager to do something without having a handle on the actual manager object.
+// 	In general, this is slower and it's preferred to not do things this way if you don't need to.
 func Test_Public_Bindings(t *testing.T) {
 
 	// Create a few public managers. Each will have their own internal state
@@ -24,11 +25,17 @@ func Test_Public_Bindings(t *testing.T) {
 	createPublicManager(t, "Manager 3", 256)
 	createPublicManager(t, "Manager 4", 256)
 
+	//Test error handling for double creation
+	_, err := NewManager("Manager 4", 256)
+	if err == nil {
+		t.Fail()
+	}
+
 	// For each of the managers, send a bunch of information to them
-	go managerTest(t, nil, "Manager 1", false)
-	go managerTest(t, nil, "Manager 2", false)
-	go managerTest(t, nil, "Manager 3", true)
-	managerTest(t, nil, "Manager 4", true)
+	go managerTest(t, nil, "Manager 1", "mr")
+	go managerTest(t, nil, "Manager 2", "rr")
+	go managerTest(t, nil, "Manager 3", "rrl")
+	managerTest(t, nil, "Manager 4", "mr")
 
 	// Ensure all managers have finished processing before shutting down
 	<-time.Tick(3 * time.Second)
@@ -46,12 +53,37 @@ func Test_Public_Bindings(t *testing.T) {
 		t.Fail()
 	}
 
-	if err := KillAndRemove("Manager 1"); err != nil {
+	// Test fetching manager by name
+	if m, err := GetManager("Manager 1"); err != nil {
+		t.Fail()
+	} else {
+		// try a function that doesnt exist
+		if _, err2 := m.Await("ThisFunctionDoesntExist", nil); err2 == nil {
+			t.Fail()
+		}
+	}
+	//test misnamed manager
+	testDNEManager(t)
+
+	//Try to remove before killing
+	if err := Remove("Manager 1"); err == nil {
 		t.Fail()
 	}
-	if err := KillAndRemove("Manager 2"); err != nil {
+
+	if err := Kill("Manager 1"); err != nil {
 		t.Fail()
 	}
+	if err := Remove("Manager 1"); err != nil {
+		t.Fail()
+	}
+
+	if err := Kill("Manager 2"); err != nil {
+		t.Fail()
+	}
+	if err := Remove("Manager 2"); err != nil {
+		t.Fail()
+	}
+
 	if err := KillAndRemove("Manager 3"); err != nil {
 		t.Fail()
 	}
@@ -74,10 +106,10 @@ func Test_Manager(t *testing.T) {
 	m3 := createHandledManager(t, "Manager 3", 256)
 	m4 := createHandledManager(t, "Manager 4", 256)
 
-	go managerTest(t, m1, "", false)
-	go managerTest(t, m2, "", false)
-	go managerTest(t, m3, "", true)
-	managerTest(t, m4, "", true)
+	go managerTest(t, m1, "", "mr")
+	go managerTest(t, m2, "", "rr")
+	go managerTest(t, m3, "", "rrl")
+	managerTest(t, m4, "", "mr")
 
 	// Ensure all managers have finished processing before shutting down
 	<-time.Tick(3 * time.Second)
@@ -87,12 +119,20 @@ func Test_Manager(t *testing.T) {
 	m1.Detach("setValue")
 	m1.Detach("square")
 
-	if err := m1.KillAndRemove(); err != nil {
+	if err := m1.Kill(); err != nil {
 		t.Fail()
 	}
-	if err := m2.KillAndRemove(); err != nil {
+	if err := m1.Remove(); err != nil {
 		t.Fail()
 	}
+
+	if err := m2.Kill(); err != nil {
+		t.Fail()
+	}
+	if err := m2.Remove(); err != nil {
+		t.Fail()
+	}
+
 	if err := m3.KillAndRemove(); err != nil {
 		t.Fail()
 	}
@@ -128,6 +168,17 @@ func Test_hasData(t *testing.T) {
 // INTERNAL TEST SETUP //
 /////////////////////////
 func createPublicManager(t *testing.T, managerName string, bufferSize int) {
+
+	//Test error handling
+	if err := Start(managerName, &State{Status: "Starting Up", Value: 0}); err == nil {
+		t.Fail()
+	}
+	if err := Attach(managerName, "test", func(any, any) any { return nil }); err == nil {
+		t.Fail()
+	}
+	if err := Detach(managerName, "test"); err == nil {
+		t.Fail()
+	}
 
 	// First, create a manager with the specified name
 	_, err := NewManager(managerName, bufferSize)
@@ -180,24 +231,24 @@ func createHandledManager(t *testing.T, managerName string, bufferSize int) *Man
 
 }
 
-func managerTest(t *testing.T, manager *Manager, managerName string, useRequests bool) {
+func managerTest(t *testing.T, manager *Manager, managerName string, requestsMode string) {
 
 	/////////////////////////
 	// WRAPPER DEFINITIONS //
 	/////////////////////////
 
 	// Used to send a bunch of requests to manager through the manager. If "Manager" is nil, we do it publically
-	performManagerRequest := func(route string, await bool, request interface{}) interface{} {
+	performManagerRequest := func(route string, await bool, request any) any {
 		if manager == nil {
 			if await {
 				response, err := Await(managerName, route, request)
-				if err != nil {
+				if _, ok := request.(error); err != nil && !ok {
 					t.Fail()
 				}
 				return response
 			} else {
 				_, err := Send(managerName, route, request)
-				if err != nil {
+				if _, ok := request.(error); err != nil && !ok {
 					t.Fail()
 				}
 				return nil
@@ -205,7 +256,7 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 		} else {
 			if await {
 				response, err := manager.Await(route, request)
-				if err != nil {
+				if _, ok := request.(error); err != nil && !ok {
 					t.Fail()
 				}
 				return response
@@ -217,18 +268,18 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 	}
 
 	// Used to send a bunch of requests to manager through requests.
-	performRequestRequest := func(route string, await bool, requestData interface{}) interface{} {
+	performRequestRequest := func(route string, await bool, requestData any) any {
 		request := NewRequest(route, requestData)
 		if manager == nil {
 			if await {
 				response, err := request.Await(managerName)
-				if err != nil {
+				if _, ok := requestData.(error); err != nil && !ok {
 					t.Fail()
 				}
 				return response
 			} else {
 				err := request.Send(managerName)
-				if err != nil {
+				if _, ok := requestData.(error); err != nil && !ok {
 					t.Fail()
 				}
 				return nil
@@ -236,7 +287,38 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 		} else {
 			if await {
 				response, err := request.AwaitManager(manager)
-				if err != nil {
+				if _, ok := requestData.(error); err != nil && !ok {
+					t.Fail()
+				}
+				return response
+			} else {
+				request.SendManager(manager)
+				return nil
+			}
+		}
+	}
+
+	// Used to send a bunch of requests to manager through requests.
+	performRequestRequestLookup := func(route string, await bool, requestData any) any {
+		request := NewRequest(route, requestData)
+		if manager == nil {
+			if await {
+				response, err := AwaitRequest(managerName, request)
+				if _, ok := requestData.(error); err != nil && !ok {
+					t.Fail()
+				}
+				return response
+			} else {
+				err := SendRequest(managerName, request)
+				if _, ok := requestData.(error); err != nil && !ok {
+					t.Fail()
+				}
+				return nil
+			}
+		} else {
+			if await {
+				response, err := request.AwaitManager(manager)
+				if _, ok := requestData.(error); err != nil && !ok {
 					t.Fail()
 				}
 				return response
@@ -248,10 +330,13 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 	}
 
 	// Wrapper for the above wrappers
-	performRequest := func(route string, await bool, data interface{}) interface{} {
-		if useRequests {
+	performRequest := func(route string, await bool, data any) any {
+		switch requestsMode {
+		case "rr":
 			return performRequestRequest(route, await, data)
-		} else {
+		case "rrl":
+			return performRequestRequestLookup(route, await, data)
+		default:
 			return performManagerRequest(route, await, data)
 		}
 	}
@@ -282,9 +367,17 @@ func managerTest(t *testing.T, manager *Manager, managerName string, useRequests
 
 			switch choice {
 
-			// If "get" case, just check that the value matches what is in the reference state
+			// If "get" case, check all different types we can get
 			case "get":
-				response := performRequest("get", true, nil)
+				respChan := make(chan any)
+				go func() {
+					respChan <- "test"
+				}()
+				response := performRequest("get", true, respChan)
+				response = performRequest("get", true, errors.New("test error"))
+				response = performRequest("get", true, &responseStruct{"test", nil})
+
+				response = performRequest("get", true, nil)
 				state := response.(*State)
 				if state.Status != referenceState.Status || state.Value != referenceState.Value {
 					t.Fail()
@@ -330,7 +423,11 @@ type State struct {
 ////////////////////
 // TEST FUNCTIONS //
 ////////////////////
-func getTestState(managerState interface{}, request interface{}) interface{} {
+func getTestState(managerState any, request any) any {
+
+	if request != nil {
+		return request
+	}
 
 	// Put an arbitrary delay
 	time.NewTicker(PROCESS_DELAY * time.Millisecond)
@@ -340,7 +437,7 @@ func getTestState(managerState interface{}, request interface{}) interface{} {
 
 }
 
-func setTestStatus(managerState interface{}, request interface{}) interface{} {
+func setTestStatus(managerState any, request any) any {
 
 	// Put an arbitrary delay
 	time.NewTicker(PROCESS_DELAY * time.Millisecond)
@@ -356,7 +453,7 @@ func setTestStatus(managerState interface{}, request interface{}) interface{} {
 
 }
 
-func setTestValue(managerState interface{}, request interface{}) interface{} {
+func setTestValue(managerState any, request any) any {
 
 	// Put an arbitrary delay
 	time.NewTicker(PROCESS_DELAY * time.Millisecond)
@@ -372,7 +469,7 @@ func setTestValue(managerState interface{}, request interface{}) interface{} {
 
 }
 
-func getTestSquare(managerState interface{}, request interface{}) interface{} {
+func getTestSquare(managerState any, request any) any {
 
 	// Put an arbitrary delay
 	time.NewTicker(PROCESS_DELAY * time.Millisecond)
@@ -381,4 +478,42 @@ func getTestSquare(managerState interface{}, request interface{}) interface{} {
 	state := managerState.(*State)
 	return state.Value * state.Value
 
+}
+
+func testDNEManager(t *testing.T) {
+
+	// Test error handling
+	if _, err := GetManager("This Manager Doesn't Exist"); err == nil {
+		t.Fail()
+	}
+	if err := Kill("This Manager Doesn't Exist"); err == nil {
+		t.Fail()
+	}
+	if err := Remove("This Manager Doesn't Exist"); err == nil {
+		t.Fail()
+	}
+	if err := KillAndRemove("This Manager Doesn't Exist"); err == nil {
+		t.Fail()
+	}
+
+	//Test error handling for requests to no manager
+	if _, err := Send("This Manager Doesn't Exist", "get", nil); err == nil {
+		t.Fail()
+	}
+	if _, err := Await("This Manager Doesn't Exist", "get", nil); err == nil {
+		t.Fail()
+	}
+	r := NewRequest("get", nil)
+	if err := SendRequest("This Manager Doesn't Exist", r); err == nil {
+		t.Fail()
+	}
+	if _, err := AwaitRequest("This Manager Doesn't Exist", r); err == nil {
+		t.Fail()
+	}
+	if err := r.Send("This Manager Doesn't Exist"); err == nil {
+		t.Fail()
+	}
+	if _, err := r.Await("This Manager Doesn't Exist"); err == nil {
+		t.Fail()
+	}
 }
